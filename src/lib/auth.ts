@@ -47,12 +47,13 @@ export function verifyAuthToken(token?: string | null): { userId: number; phone:
 
 /** خواندن کاربر فعلی لاگین‌شده در Server Components یا API */
 export async function getCurrentUser(): Promise<User | null> {
-  const store = await cookies();
-  const token = store.get(USER_TOKEN_COOKIE)?.value;
-  const payload = verifyAuthToken(token);
-  if (!payload?.userId) return null;
-
-  const [user] = await db.select().from(users).where(eq(users.id, payload.userId)).limit(1);
-  if (!user || !user.isActive) return null;
-  return user;
+  try {
+    const store = await cookies();
+    const token = store.get(USER_TOKEN_COOKIE)?.value;
+    const payload = verifyAuthToken(token);
+    if (!payload?.userId) return null;
+    const [user] = await db.select().from(users).where(eq(users.id, payload.userId)).limit(1);
+    if (!user || !user.isActive) return null;
+    return user;
+  } catch { return null; }
 }
