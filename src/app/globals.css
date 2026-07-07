@@ -1,0 +1,261 @@
+@import "tailwindcss";
+@import "@fontsource-variable/vazirmatn";
+
+/* ==========================================================================
+   درنیکا ساحل — سیستم طراحی (Design System)
+   پالت لاکچری صنعتی: سرمه‌ای عمیق / آبی نفتی / عاج و صدف / خاکستری ذغالی
+   ممنوعیت مطلق: طلایی، برنجی، هر متالیک گرم
+   ========================================================================== */
+
+@theme {
+  /* --- عاج و صدف (Ivory / Pearl) --- */
+  --color-pearl-50: #fbfaf6;
+  --color-pearl-100: #f6f2e9;
+  --color-pearl-200: #ece5d5;
+  --color-pearl-300: #ddd2ba;
+  --color-pearl-400: #c8b998;
+
+  /* --- سرمه‌ای عمیق (Deep Navy) --- */
+  --color-navy-950: #05101d;
+  --color-navy-900: #08192b;
+  --color-navy-800: #0b2136;
+  --color-navy-700: #102b45;
+  --color-navy-600: #163852;
+  --color-navy-500: #1d4762;
+
+  /* --- آبی نفتی (Petrol) --- */
+  --color-petrol-900: #08272e;
+  --color-petrol-800: #0d3b45;
+  --color-petrol-700: #124e5c;
+  --color-petrol-600: #196374;
+  --color-petrol-500: #237d90;
+  --color-petrol-400: #3d9dae;
+  --color-petrol-300: #6cbccb;
+
+  /* --- خاکستری ذغالی (Charcoal) --- */
+  --color-charcoal-950: #0c0e12;
+  --color-charcoal-900: #14171d;
+  --color-charcoal-800: #1c2029;
+  --color-charcoal-700: #262b36;
+  --color-charcoal-600: #333a48;
+  --color-charcoal-500: #4a5262;
+
+  --font-sans: "Vazirmatn Variable", ui-sans-serif, system-ui, sans-serif;
+
+  --radius-luxe: 1.75rem;
+
+  --shadow-luxe: 0 30px 80px -40px rgba(3, 12, 22, 0.75);
+  --shadow-glow-petrol: 0 0 60px -12px rgba(35, 125, 144, 0.55);
+
+  --animate-aurora: aurora 24s ease-in-out infinite;
+  --animate-float-slow: floatSlow 14s ease-in-out infinite;
+  --animate-drift: drift 30s linear infinite;
+  --animate-shimmer: shimmer 3.5s linear infinite;
+}
+
+@keyframes aurora {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+    opacity: 0.55;
+  }
+  33% {
+    transform: translate3d(4%, -3%, 0) rotate(6deg) scale(1.12);
+    opacity: 0.8;
+  }
+  66% {
+    transform: translate3d(-3%, 4%, 0) rotate(-5deg) scale(1.05);
+    opacity: 0.65;
+  }
+}
+
+@keyframes floatSlow {
+  0%,
+  100% {
+    transform: translateY(0) translateX(0);
+  }
+  50% {
+    transform: translateY(-22px) translateX(10px);
+  }
+}
+
+@keyframes drift {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 1200px 800px;
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+
+:root {
+  color-scheme: light;
+}
+
+* {
+  border-color: color-mix(in oklab, var(--color-navy-900) 10%, transparent);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-pearl-100);
+  color: var(--color-navy-900);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+/* اعداد فارسی برای متن‌های عددی مهم */
+.nums-fa {
+  font-feature-settings: "ss01";
+}
+
+/* اسکرول‌بار سفارشی لوکس */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-pearl-200);
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(var(--color-petrol-500), var(--color-navy-600));
+  border-radius: 999px;
+  border: 2px solid var(--color-pearl-200);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-petrol-600);
+}
+
+/* انتخاب متن */
+::selection {
+  background: color-mix(in oklab, var(--color-petrol-500) 55%, transparent);
+  color: var(--color-pearl-50);
+}
+
+/* ---------- کلاس‌های کمکی طراحی لوکس ---------- */
+
+.glass {
+  background: linear-gradient(
+    145deg,
+    color-mix(in oklab, var(--color-charcoal-800) 78%, transparent),
+    color-mix(in oklab, var(--color-navy-900) 62%, transparent)
+  );
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  border: 1px solid color-mix(in oklab, var(--color-pearl-100) 10%, transparent);
+}
+
+.glass-light {
+  background: linear-gradient(
+    145deg,
+    color-mix(in oklab, var(--color-pearl-100) 10%, transparent),
+    color-mix(in oklab, var(--color-pearl-200) 3%, transparent)
+  );
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid color-mix(in oklab, var(--color-pearl-100) 14%, transparent);
+}
+
+.text-gradient-pearl {
+  background: linear-gradient(120deg, var(--color-pearl-50), var(--color-pearl-300));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.text-gradient-petrol {
+  background: linear-gradient(120deg, var(--color-petrol-300), var(--color-pearl-200));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* گرادیان متن تیره برای ناحیه روشن صدفی */
+.text-gradient-navy {
+  background: linear-gradient(120deg, var(--color-navy-900), var(--color-petrol-700));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.text-gradient-navy-petrol {
+  background: linear-gradient(120deg, var(--color-petrol-600), var(--color-navy-800));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* کارت روشن برای محتوای روی پس‌زمینه صدفی */
+.card {
+  background: linear-gradient(
+    150deg,
+    color-mix(in oklab, #ffffff 82%, transparent),
+    color-mix(in oklab, var(--color-pearl-100) 70%, transparent)
+  );
+  backdrop-filter: blur(18px) saturate(130%);
+  -webkit-backdrop-filter: blur(18px) saturate(130%);
+  border: 1px solid color-mix(in oklab, var(--color-navy-900) 9%, transparent);
+  box-shadow: 0 24px 60px -38px rgba(8, 25, 43, 0.4);
+}
+
+/* شبکه نقطه‌ای تیره برای پس‌زمینه روشن */
+.grid-dots-dark {
+  background-image: radial-gradient(
+    color-mix(in oklab, var(--color-navy-900) 12%, transparent) 1px,
+    transparent 1px
+  );
+  background-size: 34px 34px;
+}
+
+.shimmer-line {
+  background: linear-gradient(
+    100deg,
+    transparent 20%,
+    color-mix(in oklab, var(--color-pearl-100) 45%, transparent) 50%,
+    transparent 80%
+  );
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+}
+
+/* شبکه نقطه‌ای پس‌زمینه */
+.grid-dots {
+  background-image: radial-gradient(
+    color-mix(in oklab, var(--color-pearl-100) 9%, transparent) 1px,
+    transparent 1px
+  );
+  background-size: 34px 34px;
+}
+
+/* پرسپکتیو برای کارت‌های سه‌بعدی */
+.perspective {
+  perspective: 1600px;
+}
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
