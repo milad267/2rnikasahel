@@ -2,9 +2,10 @@
   "name": "nextjs-postgresql-template",
   "private": true,
   "scripts": {
-    "dev": "next start -p 3000 -H 0.0.0.0",
+    "dev": "next dev --webpack -p 3000 -H 0.0.0.0",
     "build": "next build",
     "start": "next start",
+    "db:push": "echo 'db:push skipped (no prisma, using drizzle with external postgres)'",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },
