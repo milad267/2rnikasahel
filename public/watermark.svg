@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="280" height="80" viewBox="0 0 280 80">
+  <style>
+    .bg { fill: rgba(0,0,0,0.35); rx: 12; }
+    .text { fill: white; font-family: Vazirmatn, sans-serif; font-weight: 900; font-size: 22px; }
+    .sub { fill: rgba(255,255,255,0.75); font-family: Vazirmatn, sans-serif; font-weight: 500; font-size: 11px; }
+  </style>
+  <rect class="bg" x="0" y="0" width="280" height="80" rx="12" ry="12"/>
+  <text class="text" x="140" y="38" text-anchor="middle" dominant-baseline="middle">درنیکا ساحل</text>
+  <text class="sub" x="140" y="60" text-anchor="middle" dominant-baseline="middle">Dornika Sahel</text>
+</svg>

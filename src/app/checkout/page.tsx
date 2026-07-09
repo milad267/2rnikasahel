@@ -17,7 +17,7 @@ export default async function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen px-4 pb-24 pt-28 sm:px-6">
+    <div className="min-h-screen px-4 pb-24 pt-32 sm:px-6 lg:pt-44">
       <div className="mx-auto max-w-6xl">
         <h1 className="text-gradient-navy text-2xl font-black sm:text-3xl">تکمیل و تأیید نهایی سفارش</h1>
         <p className="mt-2 text-sm text-charcoal-500">

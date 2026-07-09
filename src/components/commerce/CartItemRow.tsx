@@ -55,8 +55,12 @@ export function CartItemRow({ item }: { item: CartItemView }) {
           href={`/shop/${item.productSlug}`}
           className="flex w-full items-center gap-4 sm:w-auto sm:min-w-0 sm:flex-1"
         >
-          <div className="flex size-20 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-navy-900/5 via-pearl-100 to-petrol-100">
-            <Package className="size-9 text-navy-700/25" strokeWidth={1.2} />
+          <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-navy-900/5 via-pearl-100 to-petrol-100">
+            {item.coverImage ? (
+              <img src={item.coverImage} alt={item.productTitleSnapshot} className="size-full object-cover" />
+            ) : (
+              <Package className="size-9 text-navy-700/25" strokeWidth={1.2} />
+            )}
           </div>
           <div className="min-w-0">
             <p className="line-clamp-1 text-sm font-bold text-navy-900">{item.productTitleSnapshot}</p>

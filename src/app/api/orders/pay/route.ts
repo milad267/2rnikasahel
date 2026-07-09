@@ -1,27 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SESSION_COOKIE } from "@/lib/commerce";
 import { getCurrentUser } from "@/lib/auth";
-import { confirmOrderPayment } from "@/lib/orders";
 import { db } from "@/db";
 import { orders } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
+import { getPaymentGateway } from "@/lib/payment";
 
 /**
- * در محیط توسعه، درگاه «sandbox» به‌صورت شبیه‌سازی‌شده عمل می‌کند.
- * در محیط production، در فاز ۵ از تنظیمات ادمین (api key، merchant id) خوانده می‌شود
- * و درخواست واقعی به درگاه (zarinpal/zibal/sep) ارسال می‌شود.
+ * POST /api/orders/pay
+ *
+ * سفارش را به درگاه پرداخت هدایت می‌کند.
+ * - sandbox: ریدایرکت مستقیم به callback
+ * - زرین‌پال: ریدایرکت به StartPay
  */
 export async function POST(req: NextRequest) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ ok: false, error: "لطفاً وارد حساب شوید." }, { status: 401 });
+      return NextResponse.json(
+        { ok: false, error: "لطفاً وارد حساب شوید." },
+        { status: 401 },
+      );
     }
 
     const body = await req.json().catch(() => null);
     const orderId = Number(body?.orderId);
     if (!Number.isInteger(orderId) || orderId <= 0) {
-      return NextResponse.json({ ok: false, error: "سفارش نامعتبر است." }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: "سفارش نامعتبر است." },
+        { status: 400 },
+      );
     }
 
     const [order] = await db
@@ -29,26 +36,75 @@ export async function POST(req: NextRequest) {
       .from(orders)
       .where(and(eq(orders.id, orderId), eq(orders.userId, user.id)))
       .limit(1);
+
     if (!order) {
-      return NextResponse.json({ ok: false, error: "سفارش یافت نشد." }, { status: 404 });
-    }
-    if (order.status === "paid") {
-      return NextResponse.json({ ok: true, orderNumber: order.orderNumber, alreadyPaid: true });
-    }
-    if (order.status !== "pending_payment") {
-      return NextResponse.json({ ok: false, error: "وضعیت سفارش اجازه پرداخت نمی‌دهد." }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: "سفارش یافت نشد." },
+        { status: 404 },
+      );
     }
 
-    const sessionToken = req.cookies.get(SESSION_COOKIE)?.value ?? null;
-    const updated = await confirmOrderPayment(orderId, user.id, sessionToken);
+    if (order.status === "paid") {
+      return NextResponse.json({
+        ok: true,
+        orderNumber: order.orderNumber,
+        alreadyPaid: true,
+        status: order.status,
+        paymentRef: order.paymentRef,
+      });
+    }
+
+    if (order.status !== "pending_payment") {
+      return NextResponse.json(
+        { ok: false, error: "وضعیت سفارش اجازه پرداخت نمی‌دهد." },
+        { status: 400 },
+      );
+    }
+
+    // ساخت آدرس callback
+    const origin = req.headers.get("origin") ||
+      req.headers.get("host") ||
+      process.env.NEXT_PUBLIC_APP_URL ||
+      "http://localhost:3000";
+    const callbackUrl = `${origin}/api/payment/callback`;
+
+    const gateway = await getPaymentGateway(callbackUrl);
+    const amount = Number(order.totalAmount);
+
+    const result = await gateway.requestPayment({
+      amount,
+      description: `سفارش ${order.orderNumber}`,
+      mobile: user.phone || undefined,
+      email: user.email || undefined,
+      orderNumber: order.orderNumber,
+    });
+
+    if (!result.success || !result.redirectUrl) {
+      return NextResponse.json(
+        { ok: false, error: result.error || "خطا در اتصال به درگاه پرداخت" },
+        { status: 502 },
+      );
+    }
+
+    // ذخیره authority برای callback
+    if (result.authority) {
+      await db
+        .update(orders)
+        .set({ paymentRef: result.authority })
+        .where(eq(orders.id, orderId));
+    }
 
     return NextResponse.json({
       ok: true,
-      orderNumber: updated.orderNumber,
-      status: updated.status,
-      paymentRef: updated.paymentRef,
+      redirectUrl: result.redirectUrl,
+      authority: result.authority,
+      orderNumber: order.orderNumber,
     });
   } catch (error) {
-    return NextResponse.json({ ok: false, error: (error as Error).message }, { status: 400 });
+    console.error("[pay]", error);
+    return NextResponse.json(
+      { ok: false, error: "خطای داخلی سرور" },
+      { status: 500 },
+    );
   }
 }

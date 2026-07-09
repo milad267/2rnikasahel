@@ -105,12 +105,23 @@ async function main() {
     }
 
     // ── ادمین تستی ──
-    const hash = crypto.createHash("sha256").update("admin1234").digest("hex");
+    const adminHash = crypto.createHash("sha256").update("admin1234").digest("hex");
     await client.query(
       `INSERT INTO admin_users (name, email, password_hash, role)
        VALUES ($1,$2,$3,$4)
        ON CONFLICT (email) DO NOTHING`,
-      ["مدیر تستی", "admin@dornika.local", hash, "superadmin"],
+      ["مدیر تستی", "admin@dornika.local", adminHash, "superadmin"],
+    );
+
+    // ── ادمین رو به جدول users هم اضافه می‌کنیم (برای لاگین با ایمیل و رمز) ──
+    const adminSalt = crypto.randomBytes(16).toString("hex");
+    const adminPwdHash = crypto.pbkdf2Sync("admin1234", adminSalt, 10000, 64, "sha512").toString("hex");
+    const adminFullHash = `${adminSalt}:${adminPwdHash}`;
+    await client.query(
+      `INSERT INTO users (name, email, phone, password_hash, role, company_name)
+       VALUES ($1,$2,$3,$4,$5,$6)
+       ON CONFLICT (phone) DO NOTHING`,
+      ["مدیر تستی (ادمین)", "admin@dornika.local", "09999999999", adminFullHash, "superadmin", "درنیکا ساحل"],
     );
 
     // ── واحدهای اندازه‌گیری (۱۹ واحد) ──

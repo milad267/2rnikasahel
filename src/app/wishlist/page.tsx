@@ -11,7 +11,7 @@ export default async function WishlistPage() {
   const items = await getWishlistPageData(sessionToken);
 
   return (
-    <div className="min-h-screen px-4 pb-24 pt-28 sm:px-6">
+    <div className="min-h-screen px-4 pb-24 pt-32 sm:px-6 lg:pt-44">
       <div className="mx-auto max-w-7xl">
         <div className="mb-8">
           <h1 className="text-gradient-navy text-3xl font-black sm:text-5xl">{t.nav.wishlist}</h1>
@@ -36,8 +36,12 @@ export default async function WishlistPage() {
             {items.map((item) => (
               <article key={item.id} className="card overflow-hidden rounded-[1.75rem]">
                 <Link href={`/shop/${item.slug}`} className="block">
-                  <div className="flex aspect-[4/3] items-center justify-center bg-gradient-to-br from-navy-900/5 via-pearl-100 to-petrol-100">
-                    <Heart className="size-14 text-navy-700/20" strokeWidth={1.2} />
+                  <div className="flex aspect-[4/3] items-center justify-center overflow-hidden bg-gradient-to-br from-navy-900/5 via-pearl-100 to-petrol-100">
+                    {item.coverImage ? (
+                      <img src={item.coverImage} alt={item.title} className="size-full object-cover transition-transform duration-500 hover:scale-105" />
+                    ) : (
+                      <Heart className="size-14 text-navy-700/20" strokeWidth={1.2} />
+                    )}
                   </div>
                   <div className="p-5">
                     <span className="mb-2 inline-block rounded-full bg-petrol-600/10 px-2.5 py-0.5 text-[10px] font-medium text-petrol-700">

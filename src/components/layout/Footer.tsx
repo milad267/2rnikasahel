@@ -4,7 +4,7 @@ import { Logo } from "@/components/brand/Logo";
 import { Instagram, Telegram, LinkedIn, Phone } from "@/components/ui/SocialIcons";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 
-export function Footer({ t }: { t: Dictionary }) {
+export function Footer({ t, enamadCode }: { t: Dictionary; enamadCode?: string | null }) {
   const year = new Date().getFullYear();
   const cols: { title: string; links: { label: string; href: string }[] }[] = [
     {
@@ -34,7 +34,8 @@ export function Footer({ t }: { t: Dictionary }) {
   ];
 
   return (
-    <footer className="relative z-10 mt-12 overflow-hidden rounded-t-[2rem] border-t border-pearl-100/10 bg-navy-950 text-pearl-100 shadow-[0_-30px_80px_-50px_rgba(8,25,43,0.6)] sm:mt-24 sm:rounded-t-[2.5rem]">
+    <div className="relative z-10 mx-auto mt-12 max-w-[96rem] px-4 pb-6 sm:mt-24 sm:px-6 lg:px-8">
+    <footer className="glass relative overflow-hidden rounded-[2rem] text-pearl-100 shadow-[0_-30px_80px_-50px_rgba(8,25,43,0.6)] sm:rounded-[2.5rem]">
       <div className="grid-dots pointer-events-none absolute inset-0 opacity-40 [mask-image:radial-gradient(circle_at_top,black,transparent_70%)]" />
 
       {/* ——— ردیف بالا: لوگو | اینماد (موبایل روبروی هم) ——— */}
@@ -48,21 +49,28 @@ export function Footer({ t }: { t: Dictionary }) {
           </div>
 
           {/* نماد اعتماد الکترونیکی — موبایل روبروی لوگو */}
-          <a
-            href="#"
-            aria-label={t.footer.enamad}
-            className="glass flex items-center gap-2 rounded-xl p-2 transition-all hover:-translate-y-0.5 sm:rounded-2xl sm:p-3"
-          >
-            <span className="flex size-9 items-center justify-center rounded-lg bg-petrol-600/20 text-petrol-200 sm:size-14 sm:rounded-xl">
-              <ShieldCheck className="size-4 sm:size-8" strokeWidth={1.4} />
-            </span>
-            <span className="flex flex-col">
-              <span className="text-[10px] font-bold text-pearl-50 sm:text-sm">eNamad</span>
-              <span className="hidden text-[11px] leading-5 text-pearl-200/55 sm:block">
-                {t.footer.enamadNote}
+          {enamadCode ? (
+            <div
+              dangerouslySetInnerHTML={{ __html: enamadCode }}
+              className="flex items-center justify-center"
+            />
+          ) : (
+            <a
+              href="#"
+              aria-label={t.footer.enamad}
+              className="glass flex items-center gap-2 rounded-xl p-2 transition-all hover:-translate-y-0.5 sm:rounded-2xl sm:p-3"
+            >
+              <span className="flex size-9 items-center justify-center rounded-lg bg-petrol-600/20 text-petrol-200 sm:size-14 sm:rounded-xl">
+                <ShieldCheck className="size-4 sm:size-8" strokeWidth={1.4} />
               </span>
-            </span>
-          </a>
+              <span className="flex flex-col">
+                <span className="text-[10px] font-bold text-pearl-50 sm:text-sm">eNamad</span>
+                <span className="hidden text-[11px] leading-5 text-pearl-200/55 sm:block">
+                  {t.footer.enamadNote}
+                </span>
+              </span>
+            </a>
+          )}
         </div>
 
         {/* شبکه‌های اجتماعی */}
@@ -124,5 +132,6 @@ export function Footer({ t }: { t: Dictionary }) {
         </div>
       </div>
     </footer>
+    </div>
   );
 }

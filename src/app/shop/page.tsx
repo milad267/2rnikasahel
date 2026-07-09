@@ -24,11 +24,11 @@ export default async function ShopPage({
   ]);
 
   return (
-    <div className="min-h-screen px-4 pb-24 pt-28 sm:px-6">
-      <div className="mx-auto max-w-7xl">
+    <div className="min-h-screen px-4 pb-24 pt-32 sm:px-6 lg:px-8 lg:pt-44">
+      <div className="mx-auto max-w-[96rem]">
         {/* هدر فروشگاه */}
         <div className="mb-8">
-          <h1 className="text-gradient-navy text-3xl font-black sm:text-5xl">
+          <h1 className="text-gradient-navy py-1 text-3xl font-black leading-[1.35] sm:text-5xl">
             {t.nav.shop}
           </h1>
           <p className="mt-2 text-sm text-charcoal-500">
@@ -110,9 +110,12 @@ export default async function ShopPage({
                   className="absolute end-3 top-3 z-20 bg-pearl-100/90 backdrop-blur-md"
                 />
                 <Link href={`/shop/${p.slug}`} className="block">
-                  {/* placeholder تصویر — در فازهای بعد با گالری واقعی جایگزین */}
-                  <div className="flex aspect-[4/3] items-center justify-center bg-gradient-to-br from-navy-900/5 via-pearl-100 to-petrol-100">
-                    <Package className="size-16 text-navy-700/30" strokeWidth={1.2} />
+                  <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-gradient-to-br from-navy-900/5 via-pearl-100 to-petrol-100">
+                    {p.coverImage ? (
+                      <img src={p.coverImage} alt={p.title} className="size-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                    ) : (
+                      <Package className="size-16 text-navy-700/30" strokeWidth={1.2} />
+                    )}
                   </div>
                   <div className="p-5">
                     <span className="mb-2 inline-block rounded-full bg-petrol-600/10 px-2.5 py-0.5 text-[10px] font-medium text-petrol-700">

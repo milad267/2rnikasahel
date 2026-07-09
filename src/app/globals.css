@@ -7,6 +7,18 @@
    ممنوعیت مطلق: طلایی، برنجی، هر متالیک گرم
    ========================================================================== */
 
+:root {
+  --header-height: 80px;
+  --footer-height: 100px;
+}
+
+@media (max-width: 768px) {
+  :root {
+    --header-height: 60px;
+    --footer-height: 80px;
+  }
+}
+
 @theme {
   /* --- عاج و صدف (Ivory / Pearl) --- */
   --color-pearl-50: #fbfaf6;
@@ -258,4 +270,62 @@ body {
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ==========================================================================
+   Sidebar Scrollbar (ادمین پنل)
+   ========================================================================== */
+.sidebar-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+.sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+}
+
+/* ==========================================================================
+   Modal Scrollbar
+   ========================================================================== */
+.modal-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.modal-scroll::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 10px;
+}
+.modal-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+.modal-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+.modal-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+/* ==========================================================================
+   Admin Pages — مخفی کردن فوتر سایت اصلی
+   ========================================================================== */
+[data-admin] ~ footer,
+[data-admin] + footer,
+footer:has(~ [data-admin]),
+body:has([data-admin]) footer {
+  display: none !important;
+}
+
+/* تنظیم ارتفاع فوتر برای صفحات ادمین */
+body:has([data-admin]) {
+  --footer-height: 0px !important;
 }

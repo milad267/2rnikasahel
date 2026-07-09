@@ -1,15 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Loader2, MapPin, Truck, CreditCard, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Loader2, MapPin, Truck, CreditCard, ShieldCheck, CheckCircle2, XCircle } from "lucide-react";
 import { formatRial } from "@/lib/utils";
 
 type PaymentMethod = "sandbox" | "zarinpal" | "zibal" | "sep";
 
 const GATEWAYS: { value: PaymentMethod; title: string; desc: string; status: "active" | "coming" }[] = [
   { value: "sandbox", title: "پرداخت آزمایشی (Sandbox)", desc: "بدون اتصال به درگاه — مخصوص تست", status: "active" },
-  { value: "zarinpal", title: "زرین‌پال", desc: "پرداخت امن با درگاه زرین‌پال", status: "coming" },
+  { value: "zarinpal", title: "زرین‌پال", desc: "پرداخت امن با درگاه زرین‌پال", status: "active" },
   { value: "zibal", title: "زیبال", desc: "درگاه زیبال — آماده اتصال", status: "coming" },
   { value: "sep", title: "سامان (SEP)", desc: "درگاه بانک سامان", status: "coming" },
 ];
@@ -29,11 +29,31 @@ export function CheckoutForm({
   userPhone: string;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [step, setStep] = useState<"form" | "processing" | "success">("form");
+  const [step, setStep] = useState<"form" | "processing" | "success" | "error">("form");
   const [orderNumber, setOrderNumber] = useState("");
   const [paymentRef, setPaymentRef] = useState("");
+
+  // بررسی callback params
+  useEffect(() => {
+    const successParam = searchParams.get("success");
+    const errorParam = searchParams.get("error");
+    const orderNum = searchParams.get("orderNumber");
+    const refId = searchParams.get("refId");
+
+    if (successParam === "1" && orderNum) {
+      setOrderNumber(orderNum);
+      setPaymentRef(refId || "");
+      setStep("success");
+      router.replace("/checkout", { scroll: false });
+    } else if (errorParam) {
+      setError(decodeURIComponent(errorParam).replace(/\+/g, " "));
+      setStep("error");
+      router.replace("/checkout", { scroll: false });
+    }
+  }, [searchParams, router]);
 
   const [form, setForm] = useState({
     province: "",
@@ -67,9 +87,10 @@ export function CheckoutForm({
         throw new Error(data.error || "خطا در ثبت سفارش.");
       }
 
+      setOrderNumber(data.orderNumber);
       setStep("processing");
 
-      // ۲) پرداخت (در محیط توسعه sandbox)
+      // ۲) پرداخت
       const payRes = await fetch("/api/orders/pay", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -80,15 +101,50 @@ export function CheckoutForm({
         throw new Error(payData.error || "خطا در پرداخت.");
       }
 
-      setOrderNumber(payData.orderNumber);
-      setPaymentRef(payData.paymentRef || "");
+      // اگر redirectUrl داریم (زرین‌پال و sandbox) → ریدایرکت
+      if (payData.redirectUrl) {
+        window.location.href = payData.redirectUrl;
+        return;
+      }
+
+      // بدون redirect (نباید اتفاق بیفته)
       setStep("success");
+      setPaymentRef(payData.paymentRef || "");
     } catch (err) {
       setError((err as Error).message);
       setStep("form");
     } finally {
       setLoading(false);
     }
+  }
+
+  // نمایش خطا از callback
+  if (step === "error") {
+    return (
+      <div className="card mx-auto max-w-2xl rounded-[2rem] p-8 text-center">
+        <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-red-100 text-red-600">
+          <XCircle className="size-9" strokeWidth={1.6} />
+        </div>
+        <h2 className="mt-5 text-xl font-bold text-navy-900 sm:text-2xl">پرداخت ناموفق بود</h2>
+        <p className="mt-2 text-sm text-charcoal-500">{error || "متأسفانه مشکلی در پرداخت پیش آمد."}</p>
+        <div className="mt-6 grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => { setStep("form"); setError(""); }}
+            className="rounded-full bg-petrol-600 px-5 py-3 text-sm font-semibold text-pearl-50 shadow-md"
+          >
+            تلاش مجدد
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push("/cart")}
+            className="rounded-full border border-navy-900/10 bg-navy-900/5 px-5 py-3 text-sm font-semibold text-navy-900"
+          >
+            بازگشت به سبد خرید
+          </button>
+        </div>
+      </div>
+    );
   }
 
   // نمایش صفحه موفقیت

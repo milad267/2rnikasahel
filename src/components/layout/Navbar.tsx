@@ -10,24 +10,32 @@ import { CartPopup } from "@/components/popups/CartPopup";
 import { WishlistPopup } from "@/components/popups/WishlistPopup";
 import { AuthPopup } from "@/components/popups/AuthPopup";
 import { MegaMenu } from "@/components/layout/MegaMenu";
+import { UserDropdown } from "@/components/layout/UserDropdown";
 import type { Locale } from "@/lib/i18n/config";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 import { cn } from "@/lib/utils";
 
 type PopupName = "cart" | "wishlist" | "auth" | null;
 
+type NavbarUser = {
+  id: number;
+  name: string;
+  phone: string;
+  role: string;
+} | null;
+
 export function Navbar({
   locale,
   t,
   cartCount = 0,
   wishlistCount = 0,
-  userName = null,
+  user = null,
 }: {
   locale: Locale;
   t: Dictionary;
   cartCount?: number;
   wishlistCount?: number;
-  userName?: string | null;
+  user?: NavbarUser;
 }) {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -103,7 +111,7 @@ export function Navbar({
           scrolled ? "py-2" : "py-4",
         )}
       >
-        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <div className="mx-auto max-w-[96rem] px-4 sm:px-6 lg:px-8">
           <div
             className={cn(
               "glass rounded-[1.75rem] px-3 py-2 transition-all duration-500 sm:px-5",
@@ -193,14 +201,8 @@ export function Navbar({
                   <ShoppingBag className="size-[18px]" strokeWidth={1.7} />
                   {cartCount > 0 && <Badge count={cartCount} />}
                 </button>
-                {userName ? (
-                  <Link
-                    href="/profile"
-                    className="flex items-center gap-1.5 rounded-full bg-pearl-50 px-3.5 py-1.5 text-xs font-semibold text-navy-900 transition-all hover:bg-pearl-100"
-                  >
-                    <User className="size-3.5 text-petrol-700" strokeWidth={1.8} />
-                    <span className="max-w-[100px] truncate">{userName}</span>
-                  </Link>
+                {user ? (
+                  <UserDropdown user={user} />
                 ) : (
                   <button
                     type="button"
@@ -273,10 +275,10 @@ export function Navbar({
                 <MegaMenu t={t} mobile />
               </div>
 
-              {userName ? (
+              {user ? (
                 <Link href="/profile" onClick={() => setOpen(false)} className="mt-5 flex items-center justify-center gap-2 rounded-2xl bg-pearl-50 px-4 py-3 text-sm font-bold text-navy-900">
                   <User className="size-4 text-petrol-700" strokeWidth={2} />
-                  پروفایل ({userName})
+                  {user.name}
                 </Link>
               ) : (
                 <button type="button" onClick={() => { setOpen(false); setPopup("auth"); }} className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-pearl-50 px-4 py-3 text-sm font-bold text-navy-900">

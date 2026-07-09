@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b2136"/>
+      <stop offset="1" stop-color="#05101d"/>
+    </linearGradient>
+    <linearGradient id="ac" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#237d90"/>
+      <stop offset="1" stop-color="#6cbccb"/>
+    </linearGradient>
+    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
+      <path d="M48 0H0V48" fill="none" stroke="#6cbccb" stroke-opacity="0.08" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="900" fill="url(#bg)"/>
+  <rect width="1200" height="900" fill="url(#grid)"/>
+  <g fill="none" stroke="url(#ac)" stroke-width="3" stroke-opacity="0.55">
+    <circle cx="600" cy="380" r="150"/>
+    <circle cx="600" cy="380" r="95"/>
+    <path d="M450 380 H750 M600 230 V530" stroke-opacity="0.25"/>
+    <rect x="360" y="600" width="480" height="120" rx="16" stroke-opacity="0.35"/>
+    <path d="M360 660 H840" stroke-opacity="0.2"/>
+  </g>
+  <g fill="#6cbccb" fill-opacity="0.9">
+    <circle cx="600" cy="380" r="14"/>
+  </g>
+  <text x="600" y="800" text-anchor="middle" font-family="Vazirmatn, Tahoma, sans-serif" font-size="46" font-weight="700" fill="#f6f2e9">پمپ سیرکولاتور خطی</text>
+  <text x="600" y="855" text-anchor="middle" font-family="Vazirmatn, Tahoma, sans-serif" font-size="30" fill="#6cbccb" letter-spacing="4">CIRC</text>
+  <text x="1140" y="70" text-anchor="end" font-family="Vazirmatn, Tahoma, sans-serif" font-size="26" fill="#f6f2e9" fill-opacity="0.4">درنیکا ساحل</text>
+</svg>

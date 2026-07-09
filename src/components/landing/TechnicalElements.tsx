@@ -55,7 +55,7 @@ function Gauge() {
         const y1 = 54 + Math.sin(a) * 28;
         const x2 = 60 + Math.cos(a) * 33;
         const y2 = 54 + Math.sin(a) * 33;
-        return <path key={i} d={`M${x1} ${y1} L${x2} ${y2}`} />;
+        return <path key={i} d={`M${x1.toFixed(6)} ${y1.toFixed(6)} L${x2.toFixed(6)} ${y2.toFixed(6)}`} />;
       })}
       {/* اتصال پایین */}
       <path d="M55 87 L55 98 L65 98 L65 87" />
@@ -100,7 +100,7 @@ function Flange() {
         const a = (i * 45) * (Math.PI / 180);
         const x = 60 + Math.cos(a) * 26;
         const y = 60 + Math.sin(a) * 26;
-        return <circle key={i} cx={x} cy={y} r="3.4" />;
+        return <circle key={i} cx={x.toFixed(6)} cy={y.toFixed(6)} r="3.4" />;
       })}
     </Blueprint>
   );

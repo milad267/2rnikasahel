@@ -399,3 +399,158 @@ export type UploadedFile = typeof uploadedFiles.$inferSelect;
 export type QuoteRequest = typeof quoteRequests.$inferSelect;
 export type SmsProvider = typeof smsProviders.$inferSelect;
 export type AiPriceUpdateJob = typeof aiPriceUpdateJobs.$inferSelect;
+
+/* ==========================================================================
+   فاز ۶ — برندها، تگ‌ها و ارتباط محصول-تگ
+   ========================================================================== */
+
+/** برندهای محصولات */
+export const brands = pgTable(
+  "brands",
+  {
+    id: serial("id").primaryKey(),
+    name: varchar("name", { length: 200 }).notNull(),
+    slug: varchar("slug", { length: 200 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex("brands_slug_idx").on(table.slug)],
+);
+
+/** تگ‌های محصولات */
+export const tags = pgTable(
+  "tags",
+  {
+    id: serial("id").primaryKey(),
+    name: varchar("name", { length: 100 }).notNull(),
+    slug: varchar("slug", { length: 100 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex("tags_slug_idx").on(table.slug)],
+);
+
+/** جدول میانی محصول-تگ */
+export const productTags = pgTable(
+  "product_tags",
+  {
+    id: serial("id").primaryKey(),
+    productId: integer("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "cascade" }),
+    tagId: integer("tag_id")
+      .notNull()
+      .references(() => tags.id, { onDelete: "cascade" }),
+  },
+  (table) => [uniqueIndex("product_tags_unique_idx").on(table.productId, table.tagId)],
+);
+
+export type Brand = typeof brands.$inferSelect;
+export type Tag = typeof tags.$inferSelect;
+export type ProductTag = typeof productTags.$inferSelect;
+
+/* ==========================================================================
+   فاز ۷ — بلاگ، اسلایدر، پیام‌های تماس و تاریخچه سفارشات
+   ========================================================================== */
+
+/** دسته‌بندی بلاگ */
+export const blogCategories = pgTable(
+  "blog_categories",
+  {
+    id: serial("id").primaryKey(),
+    name: varchar("name", { length: 100 }).notNull(),
+    slug: varchar("slug", { length: 100 }).notNull(),
+    description: text("description"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex("blog_categories_slug_idx").on(table.slug)],
+);
+
+/** پست‌های بلاگ */
+export const blogPosts = pgTable(
+  "blog_posts",
+  {
+    id: serial("id").primaryKey(),
+    title: varchar("title", { length: 300 }).notNull(),
+    slug: varchar("slug", { length: 200 }).notNull(),
+    excerpt: text("excerpt"),
+    content: text("content"),
+    featuredImage: varchar("featured_image", { length: 500 }),
+    mediaType: varchar("media_type", { length: 20 }).notNull().default("image"),
+    categoryId: integer("category_id").references(() => blogCategories.id, { onDelete: "set null" }),
+    authorId: integer("author_id").references(() => users.id, { onDelete: "set null" }),
+    status: varchar("status", { length: 20 }).notNull().default("draft"),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    views: integer("views").notNull().default(0),
+    metaTitle: varchar("meta_title", { length: 300 }),
+    metaDesc: text("meta_desc"),
+    allowComments: boolean("allow_comments").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex("blog_posts_slug_idx").on(table.slug)],
+);
+
+/** ارتباط پست بلاگ و تگ */
+export const blogPostTags = pgTable(
+  "blog_post_tags",
+  {
+    id: serial("id").primaryKey(),
+    postId: integer("post_id").notNull().references(() => blogPosts.id, { onDelete: "cascade" }),
+    tagId: integer("tag_id").notNull().references(() => tags.id, { onDelete: "cascade" }),
+  },
+  (table) => [uniqueIndex("blog_post_tags_unique_idx").on(table.postId, table.tagId)],
+);
+
+/** اسلایدهای لندینگ (جدید) */
+export const slides = pgTable(
+  "slides",
+  {
+    id: serial("id").primaryKey(),
+    title: varchar("title", { length: 200 }),
+    subtitle: varchar("subtitle", { length: 300 }),
+    description: text("description"),
+    mediaType: varchar("media_type", { length: 20 }).notNull().default("image"),
+    desktopImage: varchar("desktop_image", { length: 500 }),
+    mobileImage: varchar("mobile_image", { length: 500 }),
+    buttonText: varchar("button_text", { length: 100 }),
+    buttonLink: varchar("button_link", { length: 300 }),
+    buttonColor: varchar("button_color", { length: 20 }),
+    sortOrder: integer("sort_order").notNull().default(0),
+    isActive: boolean("is_active").notNull().default(true),
+    openInNewTab: boolean("open_in_new_tab").notNull().default(false),
+    startDate: timestamp("start_date", { withTimezone: true }),
+    endDate: timestamp("end_date", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+);
+
+/** پیام‌های تماس با ما */
+export const contactMessages = pgTable(
+  "contact_messages",
+  {
+    id: serial("id").primaryKey(),
+    name: varchar("name", { length: 160 }).notNull(),
+    email: varchar("email", { length: 200 }),
+    phone: varchar("phone", { length: 30 }),
+    subject: varchar("subject", { length: 200 }),
+    message: text("message").notNull(),
+    type: varchar("type", { length: 40 }).notNull().default("contact"),
+    status: varchar("status", { length: 30 }).notNull().default("unread"),
+    repliedAt: timestamp("replied_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+);
+
+/** تاریخچه سفارشات */
+export const orderHistory = pgTable(
+  "order_history",
+  {
+    id: serial("id").primaryKey(),
+    orderId: integer("order_id").notNull().references(() => orders.id, { onDelete: "cascade" }),
+    userId: integer("user_id").references(() => users.id, { onDelete: "set null" }),
+    action: varchar("action", { length: 100 }).notNull(),
+    oldValue: text("old_value"),
+    newValue: text("new_value"),
+    note: text("note"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+);

@@ -3,16 +3,32 @@
 import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 
-export function LogoutButton() {
+export function LogoutButton({ compact, onClick }: { compact?: boolean; onClick?: () => void }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   async function handleLogout() {
     setLoading(true);
     await fetch("/api/auth/logout", { method: "POST" });
+    onClick?.();
     router.push("/");
     router.refresh();
+  }
+
+  if (compact) {
+    return (
+      <button
+        type="button"
+        onClick={handleLogout}
+        disabled={loading}
+        className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-medium text-red-600 transition-all hover:bg-red-50 disabled:opacity-50"
+      >
+        <LogOut className="size-4" strokeWidth={1.7} />
+        {loading ? "در حال خروج..." : "خروج از حساب"}
+      </button>
+    );
   }
 
   return (

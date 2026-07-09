@@ -9,7 +9,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { getCommerceCounts, readSessionToken } from "@/lib/commerce";
 import { getCurrentUser } from "@/lib/auth";
-import { AdminFloatingButton } from "@/components/admin/AdminFloatingButton";
+import { getSetting } from "@/lib/settings";
 
 export const metadata: Metadata = {
   title: {
@@ -33,7 +33,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const { locale, t } = await getI18n();
   const dir = localeDirection[locale];
   const sessionToken = await readSessionToken();
-  const [counts, user] = await Promise.all([getCommerceCounts(sessionToken), getCurrentUser()]);
+  const [counts, user, enamadCode] = await Promise.all([getCommerceCounts(sessionToken), getCurrentUser(), getSetting<string>("footer.enamad_code", "general")]);
 
   return (
     <html lang={locale} dir={dir} suppressHydrationWarning>
@@ -45,11 +45,11 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           t={t}
           cartCount={counts.cartCount}
           wishlistCount={counts.wishlistCount}
-          userName={user?.name || null}
+          user={user}
         />
-        <main className="relative z-10">{children}</main>
-        <AdminFloatingButton />
-        <Footer t={t} />
+        <main className="relative">{children}</main>
+
+        <Footer t={t} enamadCode={enamadCode} />
       </body>
     </html>
   );
