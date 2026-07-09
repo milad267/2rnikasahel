@@ -37,6 +37,14 @@
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "skills",
+    "scripts",
+    "postgresql",
+    "upload",
+    "download",
+    "repo",
+    "6",
+    "test7"
   ]
 }

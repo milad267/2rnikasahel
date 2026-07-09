@@ -32,22 +32,11 @@ async function getOrCreateCart(sessionToken: string) {
 
 export async function getCommerceCounts(sessionToken: string | null) {
   if (!sessionToken) return { cartCount: 0, wishlistCount: 0 };
-
-  const cartRows = await db
-    .select({ total: count(cartItems.id) })
-    .from(cartItems)
-    .innerJoin(carts, eq(cartItems.cartId, carts.id))
-    .where(eq(carts.sessionToken, sessionToken));
-
-  const wishRows = await db
-    .select({ total: count(wishlistItems.id) })
-    .from(wishlistItems)
-    .where(eq(wishlistItems.sessionToken, sessionToken));
-
-  return {
-    cartCount: Number(cartRows[0]?.total ?? 0),
-    wishlistCount: Number(wishRows[0]?.total ?? 0),
-  };
+  try {
+    const cartRows = await db.select({ total: count(cartItems.id) }).from(cartItems).innerJoin(carts, eq(cartItems.cartId, carts.id)).where(eq(carts.sessionToken, sessionToken));
+    const wishRows = await db.select({ total: count(wishlistItems.id) }).from(wishlistItems).where(eq(wishlistItems.sessionToken, sessionToken));
+    return { cartCount: Number(cartRows[0]?.total ?? 0), wishlistCount: Number(wishRows[0]?.total ?? 0) };
+  } catch { return { cartCount: 0, wishlistCount: 0 }; }
 }
 
 export async function getCartPageData(sessionToken: string | null) {

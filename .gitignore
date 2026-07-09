@@ -1,1 +1,10 @@
+<<<<<<< HEAD
 node_modules
+=======
+skills/
+node_modules/
+.next/
+dev.log
+.env
+.env.bak
+>>>>>>> ab48f85d4aabf3e4b11eec18446c7be91aef6bc1
