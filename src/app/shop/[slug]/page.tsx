@@ -27,8 +27,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const hasVariants = product.variants.length > 0;
 
   return (
-    <div className="min-h-screen px-4 pb-24 pt-32 sm:px-6 lg:pt-44">
-      <div className="mx-auto max-w-7xl">
+    <div className="min-h-screen px-4 pb-24 pt-32 sm:px-6 lg:px-8 lg:pt-44">
+      <div className="mx-auto max-w-[96rem]">
         {/* مسیر ناوبری */}
         <nav className="mb-6 flex items-center gap-2 text-xs text-charcoal-500">
           <a href="/shop" className="transition-colors hover:text-petrol-600">{t.nav.shop}</a>

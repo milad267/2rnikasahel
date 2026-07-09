@@ -27,7 +27,7 @@ const items = [
 export function TrustBox() {
   return (
     <Reveal>
-      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+      <div className="mx-auto max-w-[96rem] px-4 sm:px-6 lg:px-8">
         <div className="card grid grid-cols-2 gap-px overflow-hidden rounded-[2rem] md:grid-cols-4">
           {items.map((it) => {
             const Icon = it.icon;

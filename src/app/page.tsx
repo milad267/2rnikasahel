@@ -17,8 +17,8 @@ export default async function HomePage() {
       <Hero t={t} locale={locale} />
 
       {/* اسلایدر لاکچری */}
-      <section className="px-4 py-12 sm:px-6">
-        <div className="mx-auto max-w-7xl">
+      <section className="px-4 py-12 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-[96rem]">
           <LandingSlider slides={slides} locale={locale} />
         </div>
       </section>
@@ -29,8 +29,8 @@ export default async function HomePage() {
       </section>
 
       {/* ویژگی‌ها (از دیتابیس — قابل ویرایش در ادمین) */}
-      <section className="px-4 py-24 sm:px-6">
-        <div className="mx-auto max-w-7xl">
+      <section className="px-4 py-24 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-[96rem]">
           <Reveal>
             <div className="mx-auto max-w-2xl text-center">
               <h2 className="text-gradient-navy text-3xl font-black tracking-tight sm:text-5xl">

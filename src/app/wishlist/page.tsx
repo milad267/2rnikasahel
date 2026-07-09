@@ -11,8 +11,8 @@ export default async function WishlistPage() {
   const items = await getWishlistPageData(sessionToken);
 
   return (
-    <div className="min-h-screen px-4 pb-24 pt-32 sm:px-6 lg:pt-44">
-      <div className="mx-auto max-w-7xl">
+    <div className="min-h-screen px-4 pb-24 pt-32 sm:px-6 lg:px-8 lg:pt-44">
+      <div className="mx-auto max-w-[96rem]">
         <div className="mb-8">
           <h1 className="text-gradient-navy text-3xl font-black sm:text-5xl">{t.nav.wishlist}</h1>
           <p className="mt-2 text-sm text-charcoal-500">

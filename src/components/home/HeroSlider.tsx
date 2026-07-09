@@ -53,7 +53,7 @@ export function HeroSlider({ slides }: { slides: Slide[] }) {
             <div className="absolute inset-0 bg-gradient-to-l from-black/60 to-transparent" />
             {/* محتوا */}
             <div className="absolute inset-0 flex items-center">
-              <div className="mx-auto max-w-7xl px-6 w-full">
+              <div className="mx-auto max-w-[96rem] px-6 w-full">
                 <div className="max-w-xl text-white">
                   {slide.title && <h2 className="text-3xl sm:text-5xl font-bold mb-3">{slide.title}</h2>}
                   {slide.subtitle && <p className="text-lg sm:text-xl mb-2 opacity-90">{slide.subtitle}</p>}

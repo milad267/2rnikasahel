@@ -1,10 +1,31 @@
-<<<<<<< HEAD
-node_modules
-=======
-skills/
+# dependencies
 node_modules/
+
+# next.js build output
 .next/
+out/
+
+# production
+build/
+
+# logs
+*.log
 dev.log
+dev-server.log
+
+# env files
 .env
-.env.bak
->>>>>>> ab48f85d4aabf3e4b11eec18446c7be91aef6bc1
+.env.*
+!.env.example
+
+# typescript
+*.tsbuildinfo
+
+# misc
+.DS_Store
+skills/
+.zcode/
+backups/
+download/
+upload/
+123456

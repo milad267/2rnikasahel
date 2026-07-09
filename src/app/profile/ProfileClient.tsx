@@ -206,8 +206,8 @@ export function ProfileClient({ user: initialUser, orders, itemsByOrder, address
   }
 
   return (
-    <div className="min-h-screen px-4 pb-24 pt-32 sm:px-6 lg:pt-44">
-      <div className="mx-auto max-w-7xl [&_[id]]:scroll-mt-32">
+    <div className="min-h-screen px-4 pb-24 pt-32 sm:px-6 lg:px-8 lg:pt-44">
+      <div className="mx-auto max-w-[96rem] [&_[id]]:scroll-mt-32">
         {/* پیام‌ها */}
         {msg && (
           <div

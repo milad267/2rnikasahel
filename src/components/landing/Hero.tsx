@@ -24,7 +24,7 @@ export function Hero({ t, locale }: { t: Dictionary; locale: Locale }) {
       ref={ref}
       className="relative flex min-h-[100svh] items-center overflow-hidden px-4 pt-28 pb-16 sm:px-6"
     >
-      <div className="mx-auto grid w-full max-w-7xl items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
+      <div className="mx-auto grid w-full max-w-[96rem] items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
         {/* متن اصلی */}
         <motion.div style={{ y: yTitle, opacity }} className="text-center lg:text-start">
           <motion.span
