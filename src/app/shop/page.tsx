@@ -3,6 +3,7 @@ import { Search, SlidersHorizontal, Package } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
 import { getShopProducts, getAllCategories } from "@/lib/shop";
 import { WishlistToggleButton } from "@/components/commerce/WishlistToggleButton";
+import { CardCartButton } from "@/components/commerce/CardCartButton";
 import { formatRial, cn } from "@/lib/utils";
 import { getWishlistProductIds, readSessionToken } from "@/lib/commerce";
 
@@ -109,6 +110,15 @@ export default async function ShopPage({
                   compact
                   className="absolute end-3 top-3 z-20 bg-pearl-100/90 backdrop-blur-md"
                 />
+                {/* دکمهٔ افزودن به سبد — گوشهٔ پایین-چپ تصویر */}
+                <div className="pointer-events-none absolute inset-x-0 top-0 z-20 aspect-[4/3]">
+                  <CardCartButton
+                    slug={p.slug}
+                    variantCount={p.variantCount}
+                    variantId={p.variantId}
+                    className="pointer-events-auto absolute bottom-3 start-3"
+                  />
+                </div>
                 <Link href={`/shop/${p.slug}`} className="block">
                   <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-gradient-to-br from-navy-900/5 via-pearl-100 to-petrol-100">
                     {p.coverImage ? (

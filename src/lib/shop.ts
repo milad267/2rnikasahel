@@ -12,7 +12,9 @@ export type ShopProduct = {
   categorySlug: string | null;
   minPrice: string;
   variantCount: number;
+  variantId: number | null;
 };
+
 
 export type ShopFilters = {
   categorySlug?: string;
@@ -24,7 +26,7 @@ export async function getShopProducts(filters?: ShopFilters): Promise<ShopProduc
     const whereClauses = [eq(products.isActive, true)];
     if (filters?.categorySlug) { whereClauses.push(sql`${categories.slug} = ${filters.categorySlug}`); }
     if (filters?.search) { whereClauses.push(or(sql`lower(${products.title}) like lower(${`%${filters.search}%`})`, sql`lower(${products.subtitle}) like lower(${`%${filters.search}%`})`)!); }
-    return await db.select({ id: products.id, slug: products.slug, title: products.title, subtitle: products.subtitle, coverImage: products.coverImage, categoryTitle: categories.title, categorySlug: categories.slug, minPrice: sql<string>`min(${productVariants.price})::text`, variantCount: count(productVariants.id) }).from(products).leftJoin(categories, eq(products.categoryId, categories.id)).leftJoin(productVariants, eq(productVariants.productId, products.id)).where(and(...whereClauses)).groupBy(products.id, categories.title, categories.slug).orderBy(asc(products.sortOrder));
+    return await db.select({ id: products.id, slug: products.slug, title: products.title, subtitle: products.subtitle, coverImage: products.coverImage, categoryTitle: categories.title, categorySlug: categories.slug, minPrice: sql<string>`min(${productVariants.price})::text`, variantCount: count(productVariants.id), variantId: sql<number | null>`min(${productVariants.id})` }).from(products).leftJoin(categories, eq(products.categoryId, categories.id)).leftJoin(productVariants, eq(productVariants.productId, products.id)).where(and(...whereClauses)).groupBy(products.id, categories.title, categories.slug).orderBy(asc(products.sortOrder));
   } catch { return []; }
 }
 

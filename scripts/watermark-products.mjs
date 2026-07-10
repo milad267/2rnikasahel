@@ -5,13 +5,36 @@ import sharp from "sharp";
 import { Pool } from "pg";
 
 const PRODUCTS_DIR = path.join(process.cwd(), "public", "products");
-const WATERMARK_PATH = path.join(process.cwd(), "public", "watermark.svg");
+// از لوگوی سایت (نسخهٔ تیره) به‌عنوان واترمارک استفاده می‌کنیم
+const LOGO_PATH = path.join(process.cwd(), "public", "logo", "logo.svg");
+const LOGO_RATIO = 1611 / 2602; // ارتفاع/عرض لوگو
+const WM_OPACITY = 0.18; // شفافیت واترمارک (۱۸٪)
 
 async function main() {
-  const wmSvg = await readFile(WATERMARK_PATH);
+  const logoSvg = await readFile(LOGO_PATH);
 
   const files = (await readdir(PRODUCTS_DIR)).filter((f) => f.toLowerCase().endsWith(".svg"));
   console.log(`یافت شد: ${files.length} فایل SVG`);
+
+  const meta = { width: 1200, height: 900 };
+  // اندازهٔ واترمارک ~۲۲٪ عرض تصویر
+  const wmWidth = Math.round(meta.width * 0.22);
+  const wmHeight = Math.round(wmWidth * LOGO_RATIO);
+
+  // رستر لوگو + اعمال شفافیت با ترفند dest-in
+  const wmResized = await sharp(logoSvg, { density: 200 })
+    .resize(wmWidth, wmHeight, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .ensureAlpha()
+    .composite([
+      {
+        input: Buffer.from([255, 255, 255, Math.round(255 * WM_OPACITY)]),
+        raw: { width: 1, height: 1, channels: 4 },
+        tile: true,
+        blend: "dest-in",
+      },
+    ])
+    .png()
+    .toBuffer();
 
   let done = 0;
   for (const file of files) {
@@ -24,12 +47,6 @@ async function main() {
       fit: "cover",
       position: "center",
     });
-    const meta = { width: 1200, height: 900 };
-
-    // اندازهٔ واترمارک ~۳۰٪ عرض تصویر
-    const wmWidth = Math.round(meta.width * 0.3);
-    const wmHeight = Math.round(wmWidth * (80 / 280));
-    const wmResized = await sharp(wmSvg).resize(wmWidth, wmHeight, { fit: "fill" }).png().toBuffer();
 
     const out = await base
       .composite([
@@ -47,7 +64,7 @@ async function main() {
     done++;
     if (done % 10 === 0) console.log(`  ${done}/${files.length}`);
   }
-  console.log(`✓ ${done} تصویر JPG واترمارک‌دار ساخته شد`);
+  console.log(`✓ ${done} تصویر JPG با واترمارک لوگو ساخته شد`);
 
   // بروزرسانی مسیرها در دیتابیس: .svg → .jpg
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
