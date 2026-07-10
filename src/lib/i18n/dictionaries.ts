@@ -17,8 +17,10 @@ export const dictionaries = {
       quote: "استعلام قیمت",
       contractors: "پنل پیمانکاران",
       blog: "بلاگ",
+      about: "درباره ما",
       contact: "تماس با ما",
       admin: "ورود ادمین",
+
       cart: "سبد خرید",
       wishlist: "علاقه‌مندی‌ها",
       search: "جستجوی محصولات…",
@@ -87,8 +89,10 @@ export const dictionaries = {
       quote: "Request Quote",
       contractors: "Contractors",
       blog: "Blog",
+      about: "About Us",
       contact: "Contact",
       admin: "Admin Login",
+
       cart: "Cart",
       wishlist: "Wishlist",
       search: "Search products…",

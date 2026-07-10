@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Menu, X, Search, ShoppingBag, Heart, User, Layers } from "lucide-react";
+
 import { motion, AnimatePresence } from "motion/react";
 import { Logo } from "@/components/brand/Logo";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
@@ -45,15 +47,15 @@ export function Navbar({
   const [searchResults, setSearchResults] = useState<{ id: number; slug: string; title: string; categoryTitle: string | null }[]>([]);
   const [searching, setSearching] = useState(false);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [activePath, setActivePath] = useState("");
+  const activePath = usePathname() ?? "/";
 
   useEffect(() => {
-    if (typeof window !== "undefined") setActivePath(window.location.pathname);
     const onScroll = () => setScrolled(window.scrollY > 24);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
 
   useEffect(() => {
     document.body.style.overflow = open || !!popup ? "hidden" : "";
@@ -87,8 +89,10 @@ export function Navbar({
     { href: "/", label: t.nav.home },
     { href: "/shop", label: t.nav.shop },
     { href: "/blog", label: t.nav.blog },
+    { href: "/about", label: t.nav.about },
     { href: "/contact", label: t.nav.contact },
   ];
+
 
   const isActive = (href: string) => {
     if (href === "/") return activePath === "/";
