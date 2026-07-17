@@ -3,16 +3,17 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import { getCurrentUser, hashPassword } from "@/lib/auth";
-import { setAdminPermissions, ADMIN_MODULES, type AdminModule } from "@/lib/admin-permissions";
+import { setAdminPermissions } from "@/lib/admin-permissions-server";
+import { ADMIN_MODULES, type AdminModule } from "@/lib/admin-permissions";
 
-/** GET: لیست ادمین‌ها */
+/** GET: لیست همه کاربران */
 export async function GET() {
   const admin = await getCurrentUser();
-  if (!admin || admin.role !== "superadmin") {
+  if (!admin || (admin.role !== "superadmin" && admin.role !== "admin")) {
     return NextResponse.json({ ok: false, error: "دسترسی غیرمجاز" }, { status: 403 });
   }
 
-  const adminList = await db
+  const allUsers = await db
     .select({
       id: users.id,
       name: users.name,
@@ -21,14 +22,14 @@ export async function GET() {
       role: users.role,
       companyName: users.companyName,
       isActive: users.isActive,
+      createdAt: users.createdAt,
     })
     .from(users)
-    .where(inArray(users.role, ["superadmin", "admin"]))
-    .orderBy(users.name);
+    .orderBy(users.createdAt);
 
-  // گرفتن دسترسی‌های هر ادمین
+  // گرفتن دسترسی‌های هر کاربر (فقط برای ادمین‌ها)
   const withPerms = await Promise.all(
-    adminList.map(async (u) => ({
+    allUsers.map(async (u) => ({
       ...u,
       permissions: u.role === "superadmin"
         ? ADMIN_MODULES.map((m) => m.key)
@@ -50,6 +51,10 @@ export async function POST(req: NextRequest) {
   const name = String(body?.name || "").trim();
   const phone = String(body?.phone || "").trim();
   const password = String(body?.password || "");
+
+  // نقش ادمین فقط با مقدار ثابت ساخته می‌شود؛ کاربر نمی‌تواند با ارسال role دلخواه نقش بگیرد.
+  const role: "admin" = "admin";
+
   const permissions = (body?.permissions || []) as AdminModule[];
 
   if (!name || !phone || password.length < 6) {
@@ -76,7 +81,7 @@ export async function POST(req: NextRequest) {
       name,
       phone,
       passwordHash: pwdHash,
-      role: "admin",
+      role,
     })
     .returning({ id: users.id });
 
@@ -91,7 +96,7 @@ export async function POST(req: NextRequest) {
   });
 }
 
-/** PUT: ویرایش دسترسی‌های ادمین */
+/** PUT: ویرایش کاربر (نام، موبایل، نقش، دسترسی‌ها) */
 export async function PUT(req: NextRequest) {
   const admin = await getCurrentUser();
   if (!admin || admin.role !== "superadmin") {
@@ -99,31 +104,67 @@ export async function PUT(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => null);
-  const targetId = Number(body?.id);
-  const permissions = (body?.permissions || []) as AdminModule[];
-
-  if (!targetId) {
+  if (!body || !body.id) {
     return NextResponse.json({ ok: false, error: "شناسه کاربر الزامی است." }, { status: 400 });
   }
+  
+  const targetId = Number(body.id);
+  const permissions = (body?.permissions || []) as AdminModule[];
 
   // بررسی وجود کاربر
   const [targetUser] = await db
-    .select({ id: users.id, role: users.role })
+    .select({ id: users.id, role: users.role, name: users.name, phone: users.phone, email: users.email, companyName: users.companyName })
     .from(users)
     .where(eq(users.id, targetId))
     .limit(1);
 
-  if (!targetUser || targetUser.role !== "admin") {
-    return NextResponse.json({ ok: false, error: "کاربر یافت نشد یا ادمین نیست." }, { status: 404 });
+  if (!targetUser) {
+    return NextResponse.json({ ok: false, error: "کاربر یافت نشد." }, { status: 404 });
   }
 
-  // ذخیره دسترسی‌ها
+  // سوپرادمین نمی‌تواند سوپرادمین دیگری را ویرایش کند (فقط خودش)
+  if (targetUser.role === "superadmin" && admin.id !== targetId) {
+    return NextResponse.json({ ok: false, error: "نمی‌توانید سوپر ادمین دیگری را ویرایش کنید." }, { status: 403 });
+  }
+
+  // به‌روزرسانی اطلاعات کاربر
+  const updateData: Record<string, string | boolean | null> = {};
+  
+  // همیشه تمام فیلدها رو به‌روزرسانی کن (حتی اگر تغییر نکرده باشن)
+  if (body.name !== undefined) {
+    updateData.name = String(body.name).trim();
+  }
+  if (body.phone !== undefined) {
+    updateData.phone = String(body.phone).trim();
+  }
+  if (body.email !== undefined) {
+    updateData.email = String(body.email).trim() || null;
+  }
+  if (body.companyName !== undefined) {
+    updateData.companyName = String(body.companyName).trim() || null;
+  }
+  // اجازه تغییر نقش به همه کاربران (از جمله سوپرادمین) داده شود
+  if (body.role !== undefined) {
+    updateData.role = body.role;
+  }
+  if (body.isActive !== undefined) {
+    updateData.isActive = Boolean(body.isActive);
+  }
+  if (body.password && String(body.password).length >= 6) {
+    updateData.passwordHash = hashPassword(String(body.password));
+  }
+
+  if (Object.keys(updateData).length > 0) {
+    await db.update(users).set(updateData).where(eq(users.id, targetId));
+  }
+
+  // به‌روزرسانی دسترسی‌ها برای همه کاربران
   await setAdminPermissions(targetId, permissions);
 
-  return NextResponse.json({ ok: true, message: "دسترسی‌ها به‌روزرسانی شد." });
+  return NextResponse.json({ ok: true, message: "کاربر با موفقیت به‌روزرسانی شد." });
 }
 
-/** DELETE: حذف ادمین */
+/** DELETE: حذف کاربر */
 export async function DELETE(req: NextRequest) {
   const admin = await getCurrentUser();
   if (!admin || admin.role !== "superadmin") {
@@ -137,17 +178,20 @@ export async function DELETE(req: NextRequest) {
 
   // بررسی وجود کاربر
   const [targetUser] = await db
-    .select({ id: users.id, role: users.role })
+    .select({ id: users.id, role: users.role, name: users.name })
     .from(users)
     .where(eq(users.id, targetId))
     .limit(1);
 
-  if (!targetUser || targetUser.role !== "admin") {
+  if (!targetUser) {
     return NextResponse.json({ ok: false, error: "کاربر یافت نشد." }, { status: 404 });
   }
 
-  // تغییر نقش به customer (حذف نشه، فقط دسترسی ادمین گرفته بشه)
-  await db.update(users).set({ role: "customer" }).where(eq(users.id, targetId));
+  if (targetUser.role === "superadmin") {
+    return NextResponse.json({ ok: false, error: "نمی‌توانید سوپر ادمین را حذف کنید." }, { status: 403 });
+  }
 
-  return NextResponse.json({ ok: true, message: "دسترسی ادمین کاربر لغو شد." });
+  // همه کاربران غیر از سوپرادمین واقعاً حذف می‌شوند
+  await db.delete(users).where(eq(users.id, targetId));
+  return NextResponse.json({ ok: true, message: "کاربر با موفقیت حذف شد." });
 }

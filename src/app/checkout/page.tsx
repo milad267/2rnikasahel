@@ -1,6 +1,9 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getCartPageData, readSessionToken } from "@/lib/commerce";
+import { db } from "@/db";
+import { userAddresses } from "@/db/schema";
+import { desc, eq } from "drizzle-orm";
 import { CheckoutForm } from "./CheckoutForm";
 
 export default async function CheckoutPage() {
@@ -16,8 +19,15 @@ export default async function CheckoutPage() {
     redirect("/cart");
   }
 
+  const savedAddresses = await db
+    .select()
+    .from(userAddresses)
+    .where(eq(userAddresses.userId, user.id))
+    .orderBy(desc(userAddresses.isDefault), desc(userAddresses.id));
+
+
   return (
-    <div className="min-h-screen px-4 pb-24 pt-32 sm:px-6 lg:pt-44">
+    <div className="min-h-screen px-4 pb-24 pt-40 sm:px-6 lg:pt-44">
       <div className="mx-auto max-w-6xl">
         <h1 className="text-gradient-navy text-2xl font-black sm:text-3xl">تکمیل و تأیید نهایی سفارش</h1>
         <p className="mt-2 text-sm text-charcoal-500">
@@ -29,7 +39,9 @@ export default async function CheckoutPage() {
             count={cart.count}
             userName={user.name}
             userPhone={user.phone}
+            savedAddresses={savedAddresses}
           />
+
         </div>
       </div>
     </div>

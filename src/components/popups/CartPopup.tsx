@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ShoppingBag, ArrowLeft, Trash2, Loader2 } from "lucide-react";
+import { ShoppingBag, ArrowLeft, Trash2, Loader2, Plus, Minus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { LuxePopup } from "@/components/ui/LuxePopup";
 import { formatRial } from "@/lib/utils";
@@ -26,7 +26,6 @@ export function CartPopup({ open, onClose }: { open: boolean; onClose: () => voi
     if (open) {
       loadCart();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   async function loadCart() {
@@ -47,6 +46,17 @@ export function CartPopup({ open, onClose }: { open: boolean; onClose: () => voi
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ variantId }),
+    });
+    loadCart();
+    router.refresh();
+  }
+
+  async function updateQty(variantId: number, qty: number) {
+    if (qty < 1) return removeItem(variantId);
+    await fetch("/api/cart/items", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ variantId, quantity: qty }),
     });
     loadCart();
     router.refresh();
@@ -75,7 +85,7 @@ export function CartPopup({ open, onClose }: { open: boolean; onClose: () => voi
         items.map((item) => (
           <div
             key={item.id}
-            className="flex items-center justify-between rounded-2xl bg-navy-900/[0.03] p-3.5"
+            className="flex items-center gap-3 rounded-2xl bg-navy-900/[0.03] p-3"
           >
             <div className="min-w-0 flex-1">
               <Link
@@ -86,16 +96,28 @@ export function CartPopup({ open, onClose }: { open: boolean; onClose: () => voi
                 {item.productTitleSnapshot}
               </Link>
               <p className="mt-0.5 text-[11px] text-charcoal-500">
-                {item.variantTitleSnapshot} × {item.quantity}
+                {item.variantTitleSnapshot}
               </p>
               <p className="mt-1 text-xs font-semibold text-navy-900">
                 {formatRial(Number(item.priceSnapshot) * item.quantity)}
               </p>
             </div>
+            <div className="flex items-center gap-1.5 rounded-lg bg-navy-900/5 px-2 py-1">
+              <button type="button" onClick={() => updateQty(item.variantId, item.quantity - 1)}
+                className="text-navy-500 hover:text-navy-900 disabled:opacity-30"
+                disabled={item.quantity <= 1}>
+                <Minus className="size-3.5" strokeWidth={2} />
+              </button>
+              <span className="min-w-[2ch] text-center text-xs font-bold text-navy-900">{item.quantity}</span>
+              <button type="button" onClick={() => updateQty(item.variantId, item.quantity + 1)}
+                className="text-navy-500 hover:text-navy-900">
+                <Plus className="size-3.5" strokeWidth={2} />
+              </button>
+            </div>
             <button
               type="button"
               onClick={() => removeItem(item.variantId)}
-              className="ms-3 flex size-9 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-500 transition-colors hover:bg-red-100"
+              className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-500 transition-colors hover:bg-red-100"
             >
               <Trash2 className="size-4" strokeWidth={1.8} />
             </button>

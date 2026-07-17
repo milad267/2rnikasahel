@@ -4,10 +4,10 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard, ShoppingBag, Package, Tag, FileText, Sliders,
-  CreditCard, MessageSquare, Mail, Bot, Inbox, Sparkles, Users,
+  LayoutDashboard, ShoppingBag, Package, Tag, Tags, FileText, Sliders,
+  CreditCard, MessageSquare, Bot, Inbox, Sparkles, Users, Code, Server,
   Image, Database, Settings, ChevronLeft, ChevronDown, LogOut,
-  ExternalLink, Menu,
+  ExternalLink, Menu, Type, Search, Truck, Camera, BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LogoutButton } from "@/components/auth/LogoutButton";
@@ -19,6 +19,7 @@ const MENU_GROUPS = [
     items: [
       { label: "داشبورد", icon: LayoutDashboard, href: "/admin" },
       { label: "سفارشات", icon: ShoppingBag, href: "/admin/orders" },
+      { label: "معرفی پروژه", icon: BookOpen, href: "/admin/about-project" },
     ],
   },
   {
@@ -26,6 +27,8 @@ const MENU_GROUPS = [
     items: [
       { label: "محصولات", icon: Package, href: "/admin/products" },
       { label: "دسته‌بندی‌ها", icon: Tag, href: "/admin/categories" },
+      { label: "برندها", icon: Tags, href: "/admin/brands" },
+      { label: "روش‌های ارسال", icon: Truck, href: "/admin/shipping-methods" },
     ],
   },
   {
@@ -39,24 +42,24 @@ const MENU_GROUPS = [
     title: "ارتباطات و درگاه‌ها",
     items: [
       { label: "درگاه‌های پرداخت", icon: CreditCard, href: "/admin/payments" },
-      { label: "پنل پیامک", icon: MessageSquare, href: "/admin/sms" },
-      { label: "پنل ایمیل", icon: Mail, href: "/admin/email" },
+      { label: "ارتباطات", icon: MessageSquare, href: "/admin/communications" },
       { label: "ربات تلگرام", icon: Bot, href: "/admin/telegram-bot" },
+      { label: "مدیریت اینستاگرام", icon: Camera, href: "/admin/instagram" },
       { label: "پیام‌های تماس", icon: Inbox, href: "/admin/contact-messages" },
     ],
   },
   {
     title: "هوشمند",
     items: [
-      { label: "هوش مصنوعی", icon: Sparkles, href: "/admin/ai" },
+      { label: "هوش مصنوعی و سئو", icon: Sparkles, href: "/admin/ai" },
     ],
   },
   {
     title: "مدیریت سیستم",
     items: [
       { label: "کاربران", icon: Users, href: "/admin/users" },
-      { label: "آیکون‌ها", icon: Image, href: "/admin/icons" },
       { label: "بکاپ و بازیابی", icon: Database, href: "/admin/backup" },
+      { label: "مدیریت سرور", icon: Server, href: "/admin/server" },
       { label: "تنظیمات سایت", icon: Settings, href: "/admin/settings" },
     ],
   },
@@ -190,7 +193,7 @@ export function AdminSidebar({ adminName, adminEmail }: Props) {
         )}
       >
       {/* Header - ثابت */}
-      <div className="flex-shrink-0 border-b border-white/10 p-4">
+      <div className="flex-shrink-0 border-b border-white/10 p-3">
         <div className="flex items-center justify-between">
           {!collapsed && (
             <div>
@@ -293,29 +296,29 @@ export function AdminSidebar({ adminName, adminEmail }: Props) {
       </nav>
 
       {/* Footer - ثابت */}
-      <div className="flex-shrink-0 border-t border-white/10 p-4">
+      <div className="flex-shrink-0 border-t border-white/10 p-3">
         {collapsed ? (
           <div className="flex justify-center">
-            <div className="flex size-10 items-center justify-center rounded-full bg-petrol-600 text-sm font-bold text-white">
+            <div className="flex size-8 items-center justify-center rounded-full bg-petrol-600 text-xs font-bold text-white">
               {adminName.charAt(0)}
             </div>
           </div>
         ) : (
-          <div className="space-y-2">
-            <div className="flex items-center gap-3 rounded-xl bg-white/5 p-3">
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-petrol-600 text-sm font-bold text-white">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2 rounded-xl bg-white/5 p-2">
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-petrol-600 text-xs font-bold text-white">
                 {adminName.charAt(0)}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-white">{adminName}</p>
-                <p className="truncate text-xs text-white/40" dir="ltr">{adminEmail}</p>
+                <p className="truncate text-xs font-semibold text-white">{adminName}</p>
+                <p className="truncate text-[10px] text-white/40" dir="ltr">{adminEmail}</p>
               </div>
             </div>
             <Link
               href="/"
-              className="flex items-center gap-2 rounded-xl bg-white/5 px-3 py-2 text-xs font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+              className="flex items-center gap-2 rounded-xl bg-white/5 px-3 py-1.5 text-[11px] font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
             >
-              <ExternalLink className="size-4" strokeWidth={1.5} />
+              <ExternalLink className="size-3.5" strokeWidth={1.5} />
               مشاهده سایت
             </Link>
             <LogoutButton compact />
@@ -343,19 +346,19 @@ export function AdminSidebar({ adminName, adminEmail }: Props) {
       <button
         type="button"
         onClick={() => setMobileOpen(true)}
-        className="fixed right-4 top-4 z-30 flex size-10 items-center justify-center rounded-xl bg-slate-900 text-white shadow-lg md:hidden"
+        className="fixed right-4 top-4 z-[70] flex size-10 items-center justify-center rounded-xl bg-slate-900 text-white shadow-lg md:hidden"
       >
         <Menu className="size-5" strokeWidth={1.5} />
       </button>
 
       {/* Drawer موبایل */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-50 md:hidden">
+        <div className="fixed inset-0 z-[80] md:hidden">
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setMobileOpen(false)}
           />
-          <div className="absolute right-0 top-0 h-full w-[260px]" style={{ top: "var(--header-height, 60px)" }}>
+          <div className="absolute right-0 top-0 h-full w-[260px]">
             {sidebarContent}
           </div>
         </div>

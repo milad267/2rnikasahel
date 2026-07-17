@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     title, slug,
     image: body.image || null,
     description: body.description || null,
-    parentId: body.parentId || null,
+    parentId: body.parentId != null && body.parentId > 0 ? body.parentId : null,
     sortOrder: body.sortOrder || 0,
     isActive: body.isActive !== false,
   }).returning();

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE, createSessionToken, addToCart, updateCartItem, removeCartItem, getCartPageData } from "@/lib/commerce";
+import { safeErrorResponse } from "@/lib/safe-error";
 
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
@@ -12,40 +13,49 @@ export async function GET(req: NextRequest) {
   const sessionToken = getSessionToken(req);
   const cart = await getCartPageData(sessionToken);
 
-  if (isPopup) {
-    // فقط فیلدهای ضروری برای پاپ‌آپ
-    return NextResponse.json(
-      cart.items.map((i) => ({
-        id: i.id,
-        quantity: i.quantity,
-        priceSnapshot: i.priceSnapshot,
-        productTitleSnapshot: i.productTitleSnapshot,
-        variantTitleSnapshot: i.variantTitleSnapshot,
-        variantId: i.variantId,
-        productSlug: i.productSlug,
-      })),
-    );
-  }
+  const res = isPopup
+    ? NextResponse.json(
+        cart.items.map((i) => ({
+          id: i.id,
+          quantity: i.quantity,
+          priceSnapshot: i.priceSnapshot,
+          productTitleSnapshot: i.productTitleSnapshot,
+          variantTitleSnapshot: i.variantTitleSnapshot,
+          variantId: i.variantId,
+          productSlug: i.productSlug,
+          coverImage: (i as any).coverImage || null,
+        })),
+      )
+    : NextResponse.json(cart);
 
-  return NextResponse.json(cart);
+  // Persist session token cookie on GET too
+  res.cookies.set(SESSION_COOKIE, sessionToken, { path: "/", maxAge: COOKIE_MAX_AGE });
+  return res;
 }
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => null);
     const variantId = Number(body?.variantId);
+    const productId = Number(body?.productId) || undefined;
     const quantity = Number(body?.quantity ?? 1);
-    if (!Number.isInteger(variantId) || variantId <= 0 || !Number.isFinite(quantity) || quantity <= 0) {
+    if (!Number.isFinite(quantity) || quantity <= 0) {
       return NextResponse.json({ ok: false, error: "invalid-payload" }, { status: 400 });
+    }
+    if (!Number.isInteger(variantId) || variantId <= 0) {
+      // اگر variantId معتبر نیست، باید productId داشته باشیم
+      if (!productId) {
+        return NextResponse.json({ ok: false, error: "invalid-payload" }, { status: 400 });
+      }
     }
 
     const sessionToken = getSessionToken(req);
-    const result = await addToCart(sessionToken, variantId, quantity);
+    const result = await addToCart(sessionToken, variantId, quantity, productId);
     const res = NextResponse.json({ ok: true, ...result });
     res.cookies.set(SESSION_COOKIE, sessionToken, { path: "/", maxAge: COOKIE_MAX_AGE });
     return res;
   } catch (error) {
-    return NextResponse.json({ ok: false, error: (error as Error).message }, { status: 400 });
+    return safeErrorResponse(error, "cart-items-post");
   }
 }
 
@@ -64,7 +74,7 @@ export async function PATCH(req: NextRequest) {
     res.cookies.set(SESSION_COOKIE, sessionToken, { path: "/", maxAge: COOKIE_MAX_AGE });
     return res;
   } catch (error) {
-    return NextResponse.json({ ok: false, error: (error as Error).message }, { status: 400 });
+    return safeErrorResponse(error, "cart-items-patch");
   }
 }
 
@@ -82,6 +92,6 @@ export async function DELETE(req: NextRequest) {
     res.cookies.set(SESSION_COOKIE, sessionToken, { path: "/", maxAge: COOKIE_MAX_AGE });
     return res;
   } catch (error) {
-    return NextResponse.json({ ok: false, error: (error as Error).message }, { status: 400 });
+    return safeErrorResponse(error, "cart-items-delete");
   }
 }

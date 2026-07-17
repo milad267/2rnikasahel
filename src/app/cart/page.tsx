@@ -12,7 +12,7 @@ export default async function CartPage() {
   const [cart, user] = await Promise.all([getCartPageData(sessionToken), getCurrentUser()]);
 
   return (
-    <div className="min-h-screen px-4 pb-24 pt-32 sm:px-6 lg:px-8 lg:pt-44">
+    <div className="min-h-screen px-4 pb-20 pt-40 sm:px-6 lg:px-8 lg:pt-44">
       <div className="mx-auto max-w-[96rem]">
         <div className="mb-8 flex items-end justify-between gap-4">
           <div>

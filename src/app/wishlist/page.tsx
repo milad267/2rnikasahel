@@ -36,7 +36,7 @@ export default async function WishlistPage() {
             {items.map((item) => (
               <article key={item.id} className="card overflow-hidden rounded-[1.75rem]">
                 <Link href={`/shop/${item.slug}`} className="block">
-                  <div className="flex aspect-[4/3] items-center justify-center overflow-hidden bg-gradient-to-br from-navy-900/5 via-pearl-100 to-petrol-100">
+                  <div className="flex aspect-[10/9] items-center justify-center overflow-hidden bg-gradient-to-br from-navy-900/5 via-pearl-100 to-petrol-100">
                     {item.coverImage ? (
                       <img src={item.coverImage} alt={item.title} className="size-full object-cover transition-transform duration-500 hover:scale-105" />
                     ) : (

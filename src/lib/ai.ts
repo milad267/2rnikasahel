@@ -1,18 +1,27 @@
-import OpenAI from "openai";
+// import OpenAI from "openai"; // Dynamic import in function
 import { getSetting } from "./settings";
 import { db } from "@/db";
-import { products, productVariants, blogPosts, slides } from "@/db/schema";
-import { eq, desc, sql, count } from "drizzle-orm";
+import { products, productVariants, blogPosts, slides, orders, users } from "@/db/schema";
+import { desc, sql, count, gte, and, ne } from "drizzle-orm";
+import { trackedChatCompletion } from "@/lib/ai-usage";
 
 // ─── Types ───
 
 export type AiProvider = "openai" | "groq" | "gemini" | "custom";
 
+/** همه نقش‌های agent که میتونن API Key جداگانه داشته باشن */
+export type AiTaskRole =
+  | "chat" | "seo" | "vision"
+  | "product" | "content" | "analytics" | "support"
+  | "data" | "marketing" | "orders" | "inventory"
+  | "customer" | "translator" | "code" | "telegram" | "router"
+  | "image-editor" | "central-brain" | "image-intelligence" | "blog-image";
+
 export interface AiConfig {
   provider: AiProvider;
   apiKey: string;
   model: string;
-  baseUrl?: string; // برای APIهای سازگار با OpenAI
+  baseUrl?: string;
 }
 
 export interface AiToolCall {
@@ -22,12 +31,44 @@ export interface AiToolCall {
 
 // ─── خواندن تنظیمات هوش مصنوعی ───
 
-export async function getAiConfig(task: "chat" | "seo" | "vision" = "chat"): Promise<AiConfig | null> {
-  const prefix = task === "chat" ? "ai.chat" : task === "seo" ? "ai.seo" : "ai.vision";
-  const provider = await getSetting<string>(`${prefix}.provider`, "ai");
-  const apiKey = await getSetting<string>(`${prefix}.api_key`, "ai");
-  const model = await getSetting<string>(`${prefix}.model`, "ai");
-  const baseUrl = await getSetting<string>(`${prefix}.base_url`, "ai");
+/** نقشه prefixهای تنظیمات برای هر role */
+const ROLE_PREFIX_MAP: Record<string, string> = {
+  chat: "ai.chat",
+  seo: "ai.seo",
+  vision: "ai.vision",
+  product: "ai.product",
+  content: "ai.content",
+  analytics: "ai.analytics",
+  support: "ai.support",
+  data: "ai.data",
+  marketing: "ai.marketing",
+  orders: "ai.orders",
+  inventory: "ai.inventory",
+  customer: "ai.customer",
+  translator: "ai.translator",
+  code: "ai.code",
+  telegram: "ai.telegram",
+  router: "ai.router",
+  "central-brain": "ai.central-brain",
+  "image-intelligence": "ai.image-intelligence",
+  "blog-image": "ai.blog-image",
+};
+
+export async function getAiConfig(task: string = "chat"): Promise<AiConfig | null> {
+  const prefix = ROLE_PREFIX_MAP[task] || `ai.${task}`;
+
+  const [provider, apiKey, model, baseUrl] = await Promise.all([
+    getSetting<string>(`${prefix}.provider`, "ai"),
+    getSetting<string>(`${prefix}.api_key`, "ai"),
+    getSetting<string>(`${prefix}.model`, "ai"),
+    getSetting<string>(`${prefix}.base_url`, "ai"),
+  ]);
+
+  // اگر API Key برای این role تنظیم نشده، از تنظیمات chat (عمومی) استفاده کن
+  if (!apiKey && task !== "chat") {
+    const chatCfg = await getAiConfig("chat");
+    if (chatCfg?.apiKey) return chatCfg;
+  }
 
   if (!apiKey) return null;
 
@@ -41,7 +82,8 @@ export async function getAiConfig(task: "chat" | "seo" | "vision" = "chat"): Pro
 
 // ─── ساخت客户端 OpenAI ───
 
-function createClient(config: AiConfig): OpenAI {
+async function createClient(config: AiConfig) {
+  const { default: OpenAI } = await import("openai");
   return new OpenAI({
     apiKey: config.apiKey,
     baseURL: config.baseUrl || undefined,
@@ -50,9 +92,9 @@ function createClient(config: AiConfig): OpenAI {
 
 // ─── تعریف ابزارهای قابل فراخوانی توسط هوش مصنوعی ───
 
-export const AI_TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
+export const AI_TOOLS = [
   {
-    type: "function",
+    type: "function" as const,
     function: {
       name: "create_product",
       description: "ایجاد یک محصول جدید در فروشگاه با تنوع‌های مختلف",
@@ -88,7 +130,7 @@ export const AI_TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
     },
   },
   {
-    type: "function",
+    type: "function" as const,
     function: {
       name: "create_blog_post",
       description: "ایجاد یک پست بلاگ جدید با محتوای تولید شده",
@@ -109,7 +151,7 @@ export const AI_TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
     },
   },
   {
-    type: "function",
+    type: "function" as const,
     function: {
       name: "create_slide",
       description: "ایجاد اسلاید جدید برای اسلایدر صفحه اصلی",
@@ -128,7 +170,7 @@ export const AI_TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
     },
   },
   {
-    type: "function",
+    type: "function" as const,
     function: {
       name: "get_sales_report",
       description: "دریافت گزارش فروش و آمار کلی فروشگاه",
@@ -156,15 +198,28 @@ export async function executeToolCall(toolCall: AiToolCall): Promise<string> {
     case "get_sales_report": {
       const period = String(args.period || "all");
       try {
+        const now = new Date();
+        const start = new Date(now);
+        if (period === "today") start.setHours(0, 0, 0, 0);
+        else if (period === "week") start.setDate(start.getDate() - 7);
+        else if (period === "month") start.setMonth(start.getMonth() - 1);
+        const orderFilter = period === "all" ? ne(orders.status, "cancelled") : and(ne(orders.status, "cancelled"), gte(orders.createdAt, start));
         const [totalProducts] = await db.select({ value: count() }).from(products);
         const [totalVariants] = await db.select({ value: count() }).from(productVariants);
+        const [totalUsers] = await db.select({ value: count() }).from(users);
+        const [sales] = await db.select({
+          ordersCount: count(),
+          totalSales: sql<string>`coalesce(sum(${orders.totalAmount}), 0)`,
+        }).from(orders).where(orderFilter);
         const recentProducts = await db.select({ id: products.id, title: products.title }).from(products).orderBy(desc(products.createdAt)).limit(5);
         return JSON.stringify({
           totalProducts: totalProducts?.value || 0,
           totalVariants: totalVariants?.value || 0,
+          totalUsers: totalUsers?.value || 0,
+          ordersCount: sales?.ordersCount || 0,
+          totalSalesRial: sales?.totalSales || "0",
           recentProducts: recentProducts.map(p => p.title),
           period,
-          note: "گزارش کامل فروش در داشبورد قابل مشاهده است",
         });
       } catch (e) {
         return JSON.stringify({ error: "خطا در دریافت آمار" });
@@ -269,35 +324,66 @@ export async function chatWithAI(messages: { role: "user" | "assistant" | "syste
   }
 
   try {
-    const client = createClient(config);
-    const systemPrompt = `تو یک دستیار هوشمند برای پنل مدیریت فروشگاه "درنیکا ساحل" هستی.
-    تو می‌توانی:
-    - محصول جدید با تنوع‌های مختلف ایجاد کنی (create_product)
-    - پست بلاگ بنویسی (create_blog_post)
-    - اسلاید برای صفحه اصلی بسازی (create_slide)
-    - گزارش فروش بدهی (get_sales_report)
+    const client = await createClient(config);
+    const currentUser = await import("@/lib/auth").then(module => module.getCurrentUser()).catch(() => null);
+    const lastUserMessage = [...messages].reverse().find((message) => message.role === "user")?.content || "";
+    const mutationConfirmed = /(?:تأیید|تایید)\s+نهایی/.test(lastUserMessage);
+    const availableTools = mutationConfirmed
+      ? AI_TOOLS
+      : AI_TOOLS.filter((tool) => tool.function.name === "get_sales_report");
+    const systemPrompt = `تو یک دستیار هوشمند و کاملاً مستقل برای پنل مدیریت فروشگاه "درنیکا ساحل" هستی.
 
-    همیشه به فارسی صحبت کن و پاسخ‌های حرفه‌ای و مختصر بده.
-    اگر کاربر درخواست ساخت چیزی را داشت، از ابزار مربوطه استفاده کن.
-    قبل از اجرای هر ابزار، خلاصه‌ای از کاری که می‌خواهی انجام بده به کاربر بگو.`;
+    وظایف و قابلیت‌های تو:
+    
+    ۱. **مدیریت محصولات:**
+    - محصول جدید با تنوع (واحد، قیمت، موجودی، SKU) ایجاد کن
+    - تحلیل لیست محصولات از متن، فایل یا تصویر
+    - تشخیص خودکار تنوع‌ها از توضیحات
+    
+    ۲. **مدیریت بلاگ:**
+    - نوشتن پست بلاگ با موضوع دلخواه
+    - تولید خودکار محتوای سئو شده
+    
+    ۳. **مدیریت اسلایدر:**
+    - ساخت اسلاید جدید برای صفحه اصلی
+    
+    ۴. **گزارش و آمار:**
+    - گزارش فروش و آمار کلی فروشگاه
+    - تعداد محصولات، سفارشات، کاربران
+    
+    ۵. **پشتیبانی:**
+    - راهنمایی در مورد بخش‌های مختلف پنل
+    - پاسخ به سوالات کاربر درباره فروشگاه
+    - تحلیل پیام‌های کاربران
+    
+    **نحوه کار کردن با تو:**
+    - هر نوع درخواست کاربر را به طور طبیعی بفهم و تحلیل کن
+    - اگه کاربر چیز نامشخصی گفت، سوال بپرس تا دقیق بفهمی چی می‌خواهد
+    - برای ساخت محصول، بلاگ یا اسلاید ابتدا خلاصه دقیق عملیات را نشان بده و از کاربر بخواه عبارت «تأیید نهایی» را ارسال کند
+    - تا وقتی پیام فعلی کاربر شامل «تأیید نهایی» نیست هیچ عملیات تغییردهنده‌ای اجرا نکن
+    - همیشه به فارسی حرفه‌ای و مختصر پاسخ بده
+    - بعد از اجرای هر ابزار، نتیجه رو به کاربر اطلاع بده
+    - اگه کاربر سوالی پرسید که مربوط به فروشگاه نیست، مودبانه بگو نمی‌توانی کمک کنی
+    - اگه کاربر درخواست حذف یا تغییر حساس داشت، قبلش تأیید بگیر`;
 
-    const response = await client.chat.completions.create({
+    const response: any = await trackedChatCompletion(client, {
       model: config.model,
       messages: [
         { role: "system", content: systemPrompt },
         ...messages,
       ],
-      tools: AI_TOOLS,
+      tools: availableTools,
       tool_choice: "auto",
-      max_tokens: 2000,
-    });
+      max_tokens: 4000,
+      timeout: 60_000,
+    }, { agent: "chat", task: "admin-chat", provider: config.provider, model: config.model, userId: currentUser?.id, isAdmin: true });
 
     const choice = response.choices[0];
     const reply = choice.message;
 
     // اگر هوش مصنوعی می‌خواهد ابزاری را فراخوانی کند
     if (reply.tool_calls && reply.tool_calls.length > 0) {
-      const results: string[] = [];
+      const results = new Map<string, string>();
 
       for (const tc of reply.tool_calls) {
         if (tc.type === "function") {
@@ -308,36 +394,37 @@ export async function chatWithAI(messages: { role: "user" | "assistant" | "syste
             parsedArgs = {};
           }
           const result = await executeToolCall({ name: tc.function.name, arguments: parsedArgs });
-          results.push(`نتیجه ${tc.function.name}: ${result}`);
+          results.set(tc.id, `نتیجه ${tc.function.name}: ${result}`);
         }
       }
 
       // ارسال نتیجه به هوش مصنوعی برای پاسخ نهایی
-      const toolMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+      const toolMessages: any[] = [
         { role: "system", content: systemPrompt },
         ...messages,
-        reply as OpenAI.Chat.Completions.ChatCompletionMessageParam,
+        reply,
       ];
 
       // افزودن نتایج ابزارها
-      for (const tc of reply.tool_calls) {
+      for (const tc of reply.tool_calls || []) {
         toolMessages.push({
-          role: "tool",
+          role: "tool" as any,
           tool_call_id: tc.id,
-          content: results.join("\n") || "عملیات انجام شد.",
-        } as OpenAI.Chat.Completions.ChatCompletionMessageParam);
+          content: results.get(tc.id) || "عملیات انجام نشد.",
+        });
       }
 
-      const finalResponse = await client.chat.completions.create({
+      const finalResponse: any = await trackedChatCompletion(client, {
         model: config.model,
         messages: toolMessages,
         max_tokens: 1000,
-      });
+        timeout: 30_000,
+      }, { agent: "chat", task: "admin-chat:tool-result", provider: config.provider, model: config.model, userId: currentUser?.id, isAdmin: true });
 
       return {
         ok: true,
         reply: finalResponse.choices[0].message.content || "عملیات با موفقیت انجام شد.",
-        toolResults: results,
+        toolResults: Array.from(results.values()),
       };
     }
 

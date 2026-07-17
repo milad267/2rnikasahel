@@ -1,0 +1,46 @@
+[Unit]
+Description=Dornika Sahel - Persian Industrial E-commerce Platform
+Documentation=https://github.com/yourusername/dornika-sahel
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=dornika
+Group=dornika
+
+# Working directory
+WorkingDirectory=/var/www/dornika-sahel/.next/standalone
+
+# Environment
+# IMPORTANT: EnvironmentFile must be outside project root and Git repository
+EnvironmentFile=/etc/dornika/dornika.env
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=HOSTNAME=127.0.0.1
+
+# Execution
+ExecStart=/usr/bin/node /var/www/dornika-sahel/.next/standalone/server.js
+
+# Restart policy
+Restart=on-failure
+RestartSec=10s
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/dornika
+ReadOnlyPaths=/var/www/dornika-sahel
+
+# Resource limits
+LimitNOFILE=65536
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=dornika
+
+[Install]
+WantedBy=multi-user.target

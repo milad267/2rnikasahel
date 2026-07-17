@@ -2,31 +2,66 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2, MapPin, Truck, CreditCard, ShieldCheck, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, MapPin, Truck, CreditCard, ShieldCheck, CheckCircle2, XCircle, Plus } from "lucide-react";
 import { formatRial } from "@/lib/utils";
+import type { PaymentGateway } from "@/lib/gateways";
+import { ProvinceCitySelect } from "@/components/ui/ProvinceCitySelect";
 
-type PaymentMethod = "sandbox" | "zarinpal" | "zibal" | "sep";
+type PaymentMethod = PaymentGateway;
 
-const GATEWAYS: { value: PaymentMethod; title: string; desc: string; status: "active" | "coming" }[] = [
-  { value: "sandbox", title: "پرداخت آزمایشی (Sandbox)", desc: "بدون اتصال به درگاه — مخصوص تست", status: "active" },
-  { value: "zarinpal", title: "زرین‌پال", desc: "پرداخت امن با درگاه زرین‌پال", status: "active" },
-  { value: "zibal", title: "زیبال", desc: "درگاه زیبال — آماده اتصال", status: "coming" },
-  { value: "sep", title: "سامان (SEP)", desc: "درگاه بانک سامان", status: "coming" },
-];
+export type SavedAddress = {
+  id: number;
+  title: string;
+  province: string;
+  city: string;
+  postalAddress: string;
+  postalCode: string | null;
+  receiverName: string | null;
+  receiverPhone: string | null;
+  isDefault: boolean;
+};
 
-const SHIPPING_FEE = 25000; // ریال
-const FREE_SHIPPING_THRESHOLD = 5000000; // بالای ۵ میلیون ریال ارسال رایگان
+
+/** درگاه‌هایی که کاربر می‌تواند از بین آن‌ها انتخاب کند */
+type AvailableGateway = { value: PaymentMethod; title: string; desc: string; isDefault: boolean };
+
+/** روش ارسال از سرور */
+export type ShippingMethodItem = {
+  id: number;
+  title: string;
+  description: string | null;
+  cost: string;
+  freeThreshold: string;
+  deliveryDays: string | null;
+  isFree: boolean;
+};
+
+/** تنظیمات ارسال (از سرور خوانده می‌شود) */
+type ShippingSettings = { fee: number; freeThreshold: number };
+
+const DEFAULT_SHIPPING: ShippingSettings = { fee: 25000, freeThreshold: 5000000 };
+
+function calcShippingCost(shippingMethods: ShippingMethodItem[], selectedId: number | null, subtotal: number): number {
+  if (!selectedId) return 0;
+  const method = shippingMethods.find((m) => m.id === selectedId);
+  if (!method || method.isFree) return 0;
+  const threshold = Number(method.freeThreshold);
+  if (threshold > 0 && subtotal >= threshold) return 0;
+  return Number(method.cost) || 0;
+}
 
 export function CheckoutForm({
   subtotal,
   count,
   userName,
   userPhone,
+  savedAddresses = [],
 }: {
   subtotal: number;
   count: number;
   userName: string;
   userPhone: string;
+  savedAddresses?: SavedAddress[];
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -35,6 +70,17 @@ export function CheckoutForm({
   const [step, setStep] = useState<"form" | "processing" | "success" | "error">("form");
   const [orderNumber, setOrderNumber] = useState("");
   const [paymentRef, setPaymentRef] = useState("");
+  const [gateways, setGateways] = useState<AvailableGateway[]>([]);
+  const [shipping, setShipping] = useState<ShippingSettings>(DEFAULT_SHIPPING);
+  const [shippingMethods, setShippingMethods] = useState<ShippingMethodItem[]>([]);
+  const [selectedShippingId, setSelectedShippingId] = useState<number | null>(null);
+  const [gatewayLoading, setGatewayLoading] = useState(true);
+  // اگر آدرس ذخیره‌شده داشته باشیم، پیش‌فرض روی آن، در غیر این‌صورت فرم جدید
+  const defaultAddr = savedAddresses.find((a) => a.isDefault) ?? savedAddresses[0];
+  const [selectedAddressId, setSelectedAddressId] = useState<number | "new">(
+    defaultAddr ? defaultAddr.id : "new",
+  );
+
 
   // بررسی callback params
   useEffect(() => {
@@ -47,28 +93,110 @@ export function CheckoutForm({
       setOrderNumber(orderNum);
       setPaymentRef(refId || "");
       setStep("success");
+      // ذخیره در sessionStorage تا با رفرش از دست نره
+      sessionStorage.setItem("order_success", JSON.stringify({ orderNumber: orderNum, paymentRef: refId || "" }));
       router.replace("/checkout", { scroll: false });
     } else if (errorParam) {
-      setError(decodeURIComponent(errorParam).replace(/\+/g, " "));
+      const errorMsg = decodeURIComponent(errorParam).replace(/\+/g, " ");
+      setError(errorMsg);
       setStep("error");
+      sessionStorage.setItem("order_error", errorMsg);
       router.replace("/checkout", { scroll: false });
+    } else {
+      // بررسی sessionStorage برای زمانی که کاربر صفحه را رفرش کرده
+      const savedSuccess = sessionStorage.getItem("order_success");
+      const savedError = sessionStorage.getItem("order_error");
+      if (savedSuccess) {
+        try {
+          const { orderNumber: savedNum, paymentRef: savedRef } = JSON.parse(savedSuccess);
+          setOrderNumber(savedNum);
+          setPaymentRef(savedRef || "");
+          setStep("success");
+        } catch {}
+      } else if (savedError) {
+        setError(savedError);
+        setStep("error");
+      }
     }
   }, [searchParams, router]);
 
   const [form, setForm] = useState({
-    province: "",
-    city: "",
-    shippingAddress: "",
-    postalCode: "",
-    receiverName: userName,
-    receiverPhone: userPhone,
-    paymentMethod: "sandbox" as PaymentMethod,
+    province: defaultAddr?.province ?? "",
+    city: defaultAddr?.city ?? "",
+    shippingAddress: defaultAddr?.postalAddress ?? "",
+    postalCode: defaultAddr?.postalCode ?? "",
+    receiverName: defaultAddr?.receiverName || userName,
+    receiverPhone: defaultAddr?.receiverPhone || userPhone,
+    paymentMethod: "zarinpal" as PaymentMethod,
     notes: "",
-    saveAddress: true,
+    // اگر آدرس ذخیره‌شده انتخاب شده، دوباره ذخیره نکن
+    saveAddress: !defaultAddr,
   });
 
-  const shipping = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
-  const total = subtotal + shipping;
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/payment/gateways", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((data) => {
+        if (cancelled || !data.ok || !Array.isArray(data.gateways)) return;
+        const available = data.gateways as AvailableGateway[];
+        setGateways(available);
+        if (available.length > 0) {
+          const preferred = available.find((gateway) => gateway.isDefault) || available[0];
+          setForm((current) => ({ ...current, paymentMethod: preferred.value }));
+        }
+        // تنظیمات ارسال از سرور
+        if (data.shipping) {
+          setShipping({
+            fee: Number(data.shipping.fee) || DEFAULT_SHIPPING.fee,
+            freeThreshold: Number(data.shipping.freeThreshold) || DEFAULT_SHIPPING.freeThreshold,
+          });
+        }
+        // روش‌های ارسال از سرور
+        if (Array.isArray(data.shippingMethods) && data.shippingMethods.length > 0) {
+          setShippingMethods(data.shippingMethods);
+          const firstActive = data.shippingMethods[0];
+          setSelectedShippingId(firstActive.id);
+        }
+      })
+      .finally(() => { if (!cancelled) setGatewayLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  // انتخاب یک آدرس ذخیره‌شده و پر کردن فرم
+  function applyAddress(id: number | "new") {
+    setSelectedAddressId(id);
+    if (id === "new") {
+      setForm((f) => ({
+        ...f,
+        province: "",
+        city: "",
+        shippingAddress: "",
+        postalCode: "",
+        receiverName: userName,
+        receiverPhone: userPhone,
+        saveAddress: true,
+      }));
+      return;
+    }
+    const addr = savedAddresses.find((a) => a.id === id);
+    if (!addr) return;
+    setForm((f) => ({
+      ...f,
+      province: addr.province,
+      city: addr.city,
+      shippingAddress: addr.postalAddress,
+      postalCode: addr.postalCode ?? "",
+      receiverName: addr.receiverName || userName,
+      receiverPhone: addr.receiverPhone || userPhone,
+      saveAddress: false,
+    }));
+  }
+
+  const shippingCost = calcShippingCost(shippingMethods, selectedShippingId, subtotal);
+  const total = subtotal + shippingCost;
+
+
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -76,11 +204,14 @@ export function CheckoutForm({
     setError("");
 
     try {
+      if (!gateways.some((gateway) => gateway.value === form.paymentMethod)) {
+        throw new Error("درگاه پرداخت فعالی برای این سفارش انتخاب نشده است.");
+      }
       // ۱) ثبت سفارش
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, shippingMethodId: selectedShippingId }),
       });
       const data = await res.json();
       if (!res.ok || !data.ok) {
@@ -130,7 +261,7 @@ export function CheckoutForm({
         <div className="mt-6 grid grid-cols-2 gap-3">
           <button
             type="button"
-            onClick={() => { setStep("form"); setError(""); }}
+            onClick={() => { sessionStorage.removeItem("order_success"); sessionStorage.removeItem("order_error"); setStep("form"); setError(""); }}
             className="rounded-full bg-petrol-600 px-5 py-3 text-sm font-semibold text-pearl-50 shadow-md"
           >
             تلاش مجدد
@@ -164,14 +295,14 @@ export function CheckoutForm({
         <div className="mt-6 grid grid-cols-2 gap-3">
           <button
             type="button"
-            onClick={() => router.push("/profile")}
+            onClick={() => { sessionStorage.removeItem("order_success"); router.push("/orders"); }}
             className="rounded-full bg-petrol-600 px-5 py-3 text-sm font-semibold text-pearl-50 shadow-md"
           >
-            مشاهده در پروفایل
+            پیگیری سفارش
           </button>
           <button
             type="button"
-            onClick={() => router.push("/shop")}
+            onClick={() => { sessionStorage.removeItem("order_success"); router.push("/shop"); }}
             className="rounded-full border border-navy-900/10 bg-navy-900/5 px-5 py-3 text-sm font-semibold text-navy-900"
           >
             ادامه خرید
@@ -203,27 +334,59 @@ export function CheckoutForm({
             آدرس ارسال
           </h2>
 
-          <div className="mt-5 grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold text-navy-900">استان</label>
-              <input
-                type="text"
-                required
-                value={form.province}
-                onChange={(e) => setForm({ ...form, province: e.target.value })}
-                placeholder="مثال: تهران"
-                className="w-full rounded-2xl border border-navy-900/10 bg-navy-900/[0.02] px-4 py-3 text-xs text-navy-900 outline-none transition-all focus:border-petrol-500 focus:bg-white"
-              />
+          {/* انتخاب آدرس ذخیره‌شده */}
+          {savedAddresses.length > 0 && (
+            <div className="mt-4 space-y-2">
+              <p className="text-xs font-semibold text-charcoal-500">یکی از آدرس‌های ذخیره‌شده را انتخاب کنید یا آدرس جدید وارد کنید:</p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {savedAddresses.map((addr) => {
+                  const active = selectedAddressId === addr.id;
+                  return (
+                    <button
+                      key={addr.id}
+                      type="button"
+                      onClick={() => applyAddress(addr.id)}
+                      className={`rounded-2xl border p-3 text-right transition-all ${
+                        active
+                          ? "border-petrol-500 bg-petrol-600/[0.08]"
+                          : "border-navy-900/10 hover:border-navy-900/20"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-bold text-navy-900">{addr.title}</p>
+                        {addr.isDefault && (
+                          <span className="rounded-full bg-petrol-600/10 px-2 py-0.5 text-[9px] text-petrol-700">پیش‌فرض</span>
+                        )}
+                      </div>
+                      <p className="mt-1 line-clamp-2 text-[10px] text-charcoal-500">
+                        {addr.province}، {addr.city} — {addr.postalAddress}
+                      </p>
+                    </button>
+                  );
+                })}
+                <button
+                  type="button"
+                  onClick={() => applyAddress("new")}
+                  className={`flex items-center justify-center gap-1.5 rounded-2xl border border-dashed p-3 text-xs font-semibold transition-all ${
+                    selectedAddressId === "new"
+                      ? "border-petrol-500 bg-petrol-600/[0.08] text-petrol-700"
+                      : "border-navy-900/20 text-charcoal-500 hover:border-navy-900/30"
+                  }`}
+                >
+                  <Plus className="size-4" strokeWidth={1.8} />
+                  آدرس جدید
+                </button>
+              </div>
             </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold text-navy-900">شهر</label>
-              <input
-                type="text"
-                required
-                value={form.city}
-                onChange={(e) => setForm({ ...form, city: e.target.value })}
-                placeholder="مثال: تهران"
-                className="w-full rounded-2xl border border-navy-900/10 bg-navy-900/[0.02] px-4 py-3 text-xs text-navy-900 outline-none transition-all focus:border-petrol-500 focus:bg-white"
+          )}
+
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <ProvinceCitySelect
+                province={form.province}
+                city={form.city}
+                onProvinceChange={(v) => setForm({ ...form, province: v })}
+                onCityChange={(v) => setForm({ ...form, city: v })}
               />
             </div>
             <div className="sm:col-span-2">
@@ -241,28 +404,38 @@ export function CheckoutForm({
               <label className="mb-1.5 block text-xs font-semibold text-navy-900">کد پستی</label>
               <input
                 type="text"
+                inputMode="numeric"
+                pattern="\d{10}"
+                maxLength={10}
+                title="کد پستی باید ۱۰ رقم باشد"
                 value={form.postalCode}
-                onChange={(e) => setForm({ ...form, postalCode: e.target.value })}
+                onChange={(e) => setForm({ ...form, postalCode: e.target.value.replace(/\D/g, "").slice(0, 10) })}
                 placeholder="۱۰ رقمی"
                 dir="ltr"
                 className="w-full rounded-2xl border border-navy-900/10 bg-navy-900/[0.02] px-4 py-3 text-xs text-navy-900 outline-none transition-all focus:border-petrol-500 focus:bg-white"
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-semibold text-navy-900">نام گیرنده</label>
+              <label className="mb-1.5 block text-xs font-semibold text-navy-900">نام گیرنده *</label>
               <input
                 type="text"
+                required
                 value={form.receiverName}
                 onChange={(e) => setForm({ ...form, receiverName: e.target.value })}
                 className="w-full rounded-2xl border border-navy-900/10 bg-navy-900/[0.02] px-4 py-3 text-xs text-navy-900 outline-none transition-all focus:border-petrol-500 focus:bg-white"
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-semibold text-navy-900">موبایل گیرنده</label>
+              <label className="mb-1.5 block text-xs font-semibold text-navy-900">موبایل گیرنده *</label>
               <input
                 type="tel"
+                inputMode="numeric"
+                required
+                pattern="09\d{9}"
+                maxLength={11}
+                title="شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود"
                 value={form.receiverPhone}
-                onChange={(e) => setForm({ ...form, receiverPhone: e.target.value })}
+                onChange={(e) => setForm({ ...form, receiverPhone: e.target.value.replace(/\D/g, "").slice(0, 11) })}
                 dir="ltr"
                 className="w-full rounded-2xl border border-navy-900/10 bg-navy-900/[0.02] px-4 py-3 text-xs text-navy-900 outline-none transition-all focus:border-petrol-500 focus:bg-white"
               />
@@ -271,6 +444,7 @@ export function CheckoutForm({
               <label className="mb-1.5 block text-xs font-semibold text-navy-900">یادداشت سفارش (اختیاری)</label>
               <input
                 type="text"
+                maxLength={500}
                 value={form.notes}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
                 placeholder="مثال: تحویل در ساعات اداری"
@@ -296,19 +470,57 @@ export function CheckoutForm({
             <Truck className="size-5 text-petrol-600" strokeWidth={1.8} />
             روش ارسال
           </h2>
-          <div className="mt-4 flex items-center justify-between rounded-2xl border border-petrol-500/30 bg-petrol-600/[0.05] p-4">
-            <div>
-              <p className="text-sm font-bold text-navy-900">ارسال پست پیشتاز (سراسری)</p>
-              <p className="mt-1 text-[11px] text-charcoal-500">۲ تا ۴ روز کاری — بیمه‌شده تا درب منزل</p>
+          {gatewayLoading && <p className="py-3 text-center text-xs text-charcoal-500">در حال دریافت روش‌های ارسال…</p>}
+          {!gatewayLoading && shippingMethods.length === 0 && (
+            <div className="mt-4 rounded-2xl border border-petrol-500/30 bg-petrol-600/[0.05] p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-bold text-navy-900">ارسال پیش‌فرض</p>
+                  <p className="mt-1 text-[11px] text-charcoal-500">هزینه بر اساس تنظیمات فروشگاه محاسبه می‌شود</p>
+                </div>
+                <span className="text-xs font-bold text-petrol-700">
+                  {shippingCost === 0 ? "رایگان" : formatRial(shippingCost)}
+                </span>
+              </div>
+              {subtotal < shipping.freeThreshold && (
+                <p className="mt-2 text-[10px] text-charcoal-500">
+                  برای ارسال رایگان {formatRial(shipping.freeThreshold - subtotal)} دیگر خرید کنید.
+                </p>
+              )}
             </div>
-            <span className="text-xs font-bold text-petrol-700">
-              {shipping === 0 ? "رایگان" : formatRial(shipping)}
-            </span>
-          </div>
-          {subtotal < FREE_SHIPPING_THRESHOLD && (
-            <p className="mt-2 text-[10px] text-charcoal-500">
-              برای ارسال رایگان {formatRial(FREE_SHIPPING_THRESHOLD - subtotal)} دیگر خرید کنید.
-            </p>
+          )}
+          {!gatewayLoading && shippingMethods.length > 0 && (
+            <div className="mt-4 grid gap-2">
+              {shippingMethods.map((method) => {
+                const active = selectedShippingId === method.id;
+                const methodCost = calcShippingCost(shippingMethods, method.id, subtotal);
+                return (
+                  <button
+                    key={method.id}
+                    type="button"
+                    onClick={() => setSelectedShippingId(method.id)}
+                    className={`flex items-center justify-between rounded-2xl border p-4 text-right transition-all ${
+                      active
+                        ? "border-petrol-500 bg-petrol-600/[0.08]"
+                        : "border-navy-900/10 hover:border-navy-900/20"
+                    }`}
+                  >
+                    <div>
+                      <p className="text-sm font-bold text-navy-900">{method.title}</p>
+                      {method.description && (
+                        <p className="mt-0.5 text-[11px] text-charcoal-500">{method.description}</p>
+                      )}
+                      {method.deliveryDays && (
+                        <p className="mt-0.5 text-[10px] text-charcoal-400">🚚 {method.deliveryDays}</p>
+                      )}
+                    </div>
+                    <span className="text-xs font-bold text-petrol-700">
+                      {method.isFree ? "رایگان" : methodCost === 0 ? "رایگان" : formatRial(methodCost)}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           )}
         </div>
 
@@ -318,27 +530,30 @@ export function CheckoutForm({
             انتخاب درگاه پرداخت
           </h2>
           <div className="mt-4 grid gap-2">
-            {GATEWAYS.map((gw) => {
+            {gatewayLoading && <p className="py-5 text-center text-xs text-charcoal-500">در حال دریافت درگاه‌های فعال…</p>}
+            {!gatewayLoading && gateways.length === 0 && (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs leading-6 text-amber-800">
+                هنوز درگاه آماده‌ای فعال نشده است. لطفاً با پشتیبانی فروشگاه تماس بگیرید.
+              </div>
+            )}
+            {gateways.map((gw) => {
               const active = form.paymentMethod === gw.value;
               return (
                 <button
                   key={gw.value}
                   type="button"
-                  disabled={gw.status === "coming"}
                   onClick={() => setForm({ ...form, paymentMethod: gw.value })}
                   className={`flex items-center justify-between rounded-2xl border p-4 text-right transition-all ${
                     active
                       ? "border-petrol-500 bg-petrol-600/[0.08]"
                       : "border-navy-900/10 hover:border-navy-900/20"
-                  } ${gw.status === "coming" ? "cursor-not-allowed opacity-55" : ""}`}
+                  }`}
                 >
                   <div>
                     <p className="text-xs font-bold text-navy-900">{gw.title}</p>
                     <p className="mt-0.5 text-[10px] text-charcoal-500">{gw.desc}</p>
                   </div>
-                  {gw.status === "coming" && (
-                    <span className="rounded-full bg-navy-900/5 px-2 py-0.5 text-[9px] text-charcoal-500">به‌زودی</span>
-                  )}
+                  {active && <CheckCircle2 className="size-5 text-petrol-600" />}
                 </button>
               );
             })}
@@ -362,7 +577,7 @@ export function CheckoutForm({
             <div className="flex items-center justify-between text-charcoal-500">
               <span>هزینه ارسال</span>
               <span className="font-medium text-navy-900">
-                {shipping === 0 ? "رایگان" : formatRial(shipping)}
+                {shippingCost === 0 ? "رایگان" : formatRial(shippingCost)}
               </span>
             </div>
           </div>

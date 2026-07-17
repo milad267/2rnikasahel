@@ -23,6 +23,27 @@ export function ProductGallery({ images, title }: Props) {
     else setCurrentIndex(index);
   }, [allImages.length]);
 
+  // قفل اسکرول بدنه وقتی لایت‌باکس باز است
+  useEffect(() => {
+    if (lightboxOpen) {
+      document.body.style.overflow = "hidden";
+      document.documentElement.style.overflow = "hidden";
+      document.body.style.overscrollBehavior = "none";
+      document.documentElement.style.overscrollBehavior = "none";
+    } else {
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+      document.body.style.overscrollBehavior = "";
+      document.documentElement.style.overscrollBehavior = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+      document.body.style.overscrollBehavior = "";
+      document.documentElement.style.overscrollBehavior = "";
+    };
+  }, [lightboxOpen]);
+
   // Keyboard navigation in lightbox
   useEffect(() => {
     if (!lightboxOpen) return;

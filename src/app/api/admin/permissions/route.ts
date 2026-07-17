@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAllowedModules, ADMIN_MODULES } from "@/lib/admin-permissions";
+import { requireAdmin } from "@/lib/admin-security";
+import { getAllowedModules } from "@/lib/admin-permissions-server";
+import { ADMIN_MODULES } from "@/lib/admin-permissions";
 
 export async function GET(req: NextRequest) {
+  const auth = await requireAdmin(); if (auth.response) return auth.response;
   const userId = Number(req.nextUrl.searchParams.get("userId"));
   const role = req.nextUrl.searchParams.get("role") || "customer";
 

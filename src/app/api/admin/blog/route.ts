@@ -41,11 +41,19 @@ export async function POST(req: NextRequest) {
   }
   const body = await req.json();
   if (!body.title) return NextResponse.json({ ok: false, error: "عنوان الزامی است" }, { status: 400 });
+  const isVideo = !!body.videoUrl;
+  // اگر featuredImage رشته خالی باشه، null ذخیره کن
+  const featImg = isVideo ? body.videoUrl : (body.featuredImage?.trim() || null);
+  const isPublishing = body.status === "published";
   const [created] = await db.insert(blogPosts).values({
     title: body.title, slug: body.slug || body.title.replace(/\s+/g, "-").toLowerCase(),
-    excerpt: body.excerpt, content: body.content, featuredImage: body.featuredImage,
+    excerpt: body.excerpt, content: body.content,
+    featuredImage: featImg,
+    mediaType: isVideo ? "video" : (featImg ? "image" : "none"),
     categoryId: body.categoryId || null, authorId: user.id,
-    status: body.status || "draft", metaTitle: body.metaTitle, metaDesc: body.metaDesc,
+    status: body.status || "draft",
+    publishedAt: isPublishing ? new Date() : null,
+    metaTitle: body.metaTitle, metaDesc: body.metaDesc,
     allowComments: body.allowComments !== false,
   }).returning();
 

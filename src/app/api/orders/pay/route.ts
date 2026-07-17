@@ -4,6 +4,8 @@ import { db } from "@/db";
 import { orders } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { getPaymentGateway } from "@/lib/payment";
+import { getPublicOrigin } from "@/lib/public-url";
+import type { PaymentGateway } from "@/lib/gateways";
 
 /**
  * POST /api/orders/pay
@@ -62,13 +64,10 @@ export async function POST(req: NextRequest) {
     }
 
     // ساخت آدرس callback
-    const origin = req.headers.get("origin") ||
-      req.headers.get("host") ||
-      process.env.NEXT_PUBLIC_APP_URL ||
-      "http://localhost:3000";
+    const origin = getPublicOrigin(req);
     const callbackUrl = `${origin}/api/payment/callback`;
 
-    const gateway = await getPaymentGateway(callbackUrl);
+    const gateway = await getPaymentGateway(callbackUrl, (order.paymentMethod || "zarinpal") as PaymentGateway);
     const amount = Number(order.totalAmount);
 
     const result = await gateway.requestPayment({

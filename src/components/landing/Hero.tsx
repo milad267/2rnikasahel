@@ -8,7 +8,35 @@ import { TiltCard } from "./TiltCard";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 import type { Locale } from "@/lib/i18n/config";
 
-export function Hero({ t, locale }: { t: Dictionary; locale: Locale }) {
+const ICON_MAP: Record<string, React.ReactNode> = {
+  Boxes: <Boxes className="size-6" strokeWidth={1.6} />,
+  Cpu: <Cpu className="size-6" strokeWidth={1.6} />,
+  Layers: <Layers className="size-6" strokeWidth={1.6} />,
+  ShieldCheck: <Boxes className="size-6" strokeWidth={1.6} />,
+  Compass: <Compass className="size-6" strokeWidth={1.6} />,
+};
+
+function renderIcon(iconName: string, className = "size-6") {
+  if (!iconName) return <Boxes className={className} strokeWidth={1.6} />;
+  // اگه آدرس تصویر باشه (با / یا http شروع بشه)
+  if (iconName.startsWith("/") || iconName.startsWith("http")) {
+    return <img src={iconName} alt="" className={className} />;
+  }
+  // اسم آیکون Lucide
+  return ICON_MAP[iconName] || <Boxes className={className} strokeWidth={1.6} />;
+}
+
+export type HeroCardData = {
+  icon: string;
+  title: string;
+  value: string;
+};
+
+export function Hero({ t, locale, cards }: {
+  t: Dictionary;
+  locale: Locale;
+  cards?: HeroCardData[];
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -21,6 +49,7 @@ export function Hero({ t, locale }: { t: Dictionary; locale: Locale }) {
 
   return (
     <section
+      id="hero"
       ref={ref}
       className="relative flex min-h-[100svh] items-center overflow-hidden px-4 pt-28 pb-16 sm:px-6"
     >
@@ -28,7 +57,7 @@ export function Hero({ t, locale }: { t: Dictionary; locale: Locale }) {
         {/* متن اصلی */}
         <motion.div style={{ y: yTitle, opacity }} className="text-center lg:text-start">
           <motion.span
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
             className="card inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-medium text-petrol-700"
@@ -41,7 +70,7 @@ export function Hero({ t, locale }: { t: Dictionary; locale: Locale }) {
           </motion.span>
 
           <motion.h1
-            initial={{ opacity: 0, y: 30 }}
+            initial={false}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.1 }}
             className="mt-6 text-4xl font-black leading-[1.15] tracking-tight sm:text-6xl lg:text-7xl"
@@ -50,7 +79,7 @@ export function Hero({ t, locale }: { t: Dictionary; locale: Locale }) {
           </motion.h1>
 
           <motion.p
-            initial={{ opacity: 0, y: 30 }}
+            initial={false}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
             className="mx-auto mt-6 max-w-xl text-base leading-8 text-charcoal-500 lg:mx-0"
@@ -59,7 +88,7 @@ export function Hero({ t, locale }: { t: Dictionary; locale: Locale }) {
           </motion.p>
 
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={false}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.3 }}
             className="mt-9 flex flex-col items-center gap-3 sm:flex-row lg:justify-start"
@@ -81,31 +110,47 @@ export function Hero({ t, locale }: { t: Dictionary; locale: Locale }) {
           </motion.div>
         </motion.div>
 
-        {/* کارت‌های شناور سه‌بعدی */}
+        {/* کارت‌های شناور سه‌بعدی - دسکتاپ */}
         <motion.div style={{ y: yCards }} className="relative hidden h-[30rem] lg:block">
-          <FloatingCard
-            className="absolute end-0 top-4 w-64"
-            delay={0.3}
-            icon={<Boxes className="size-6" strokeWidth={1.6} />}
-            title="سیستم تنوع محصول"
-            value="نامحدود"
-            accent
-          />
-          <FloatingCard
-            className="absolute start-0 top-40 w-60"
-            delay={0.5}
-            icon={<Cpu className="size-6" strokeWidth={1.6} />}
-            title="هوش مصنوعی"
-            value="۴ ماژول"
-          />
-          <FloatingCard
-            className="absolute end-10 bottom-2 w-56"
-            delay={0.7}
-            icon={<Layers className="size-6" strokeWidth={1.6} />}
-            title="واحدهای اندازه‌گیری"
-            value="۱۹+"
-          />
+          {cards && cards.length >= 3 ? (
+            <>
+              <FloatingCard className="absolute end-0 top-4 w-64" delay={0.3}
+                icon={renderIcon(cards[0]?.icon)} title={cards[0]?.title || "سیستم تنوع محصول"}
+                value={cards[0]?.value || "نامحدود"} accent />
+              <FloatingCard className="absolute start-0 top-40 w-60" delay={0.5}
+                icon={renderIcon(cards[1]?.icon)} title={cards[1]?.title || "هوش مصنوعی"}
+                value={cards[1]?.value || "۴ ماژول"} />
+              <FloatingCard className="absolute end-10 bottom-2 w-56" delay={0.7}
+                icon={renderIcon(cards[2]?.icon)} title={cards[2]?.title || "واحدهای اندازه‌گیری"}
+                value={cards[2]?.value || "۱۹+"} />
+            </>
+          ) : (
+            <>
+              <FloatingCard className="absolute end-0 top-4 w-64" delay={0.3}
+                icon={renderIcon("Boxes")} title="سیستم تنوع محصول" value="نامحدود" accent />
+              <FloatingCard className="absolute start-0 top-40 w-60" delay={0.5}
+                icon={renderIcon("Cpu")} title="هوش مصنوعی" value="۴ ماژول" />
+              <FloatingCard className="absolute end-10 bottom-2 w-56" delay={0.7}
+                icon={renderIcon("Layers")} title="واحدهای اندازه‌گیری" value="۱۹+" />
+            </>
+          )}
         </motion.div>
+
+        {/* کارت‌های شناور - موبایل (گرید ۳ تایی زیر متن) */}
+        <div className="mt-8 grid grid-cols-3 gap-3 lg:hidden">
+          {cards && cards.length >= 3 ? (
+            [0, 1, 2].map((i) => (
+              <MobileCard key={i} icon={renderIcon(cards[i]?.icon, "size-5")}
+                title={cards[i]?.title || ""} value={cards[i]?.value || ""} accent={i === 0} />
+            ))
+          ) : (
+            <>
+              <MobileCard icon={renderIcon("Boxes", "size-5")} title="سیستم تنوع محصول" value="نامحدود" accent />
+              <MobileCard icon={renderIcon("Cpu", "size-5")} title="هوش مصنوعی" value="۴ ماژول" />
+              <MobileCard icon={renderIcon("Layers", "size-5")} title="واحدهای اندازه‌گیری" value="۱۹+" />
+            </>
+          )}
+        </div>
       </div>
 
       {/* اسکرول‌داون */}
@@ -139,7 +184,7 @@ function FloatingCard({
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 40, scale: 0.9 }}
+      initial={false}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.8, delay, ease: [0.22, 1, 0.36, 1] }}
       className={className}
@@ -167,5 +212,26 @@ function FloatingCard({
         </TiltCard>
       </motion.div>
     </motion.div>
+  );
+}
+
+// ─── کارت فشرده برای موبایل ───
+function MobileCard({ icon, title, value, accent }: { icon: React.ReactNode; title: string; value: string; accent?: boolean }) {
+  return (
+    <div
+      className={`card rounded-xl p-3 text-center ${
+        accent ? "ring-1 ring-petrol-500/30" : ""
+      }`}
+    >
+      <div
+        className={`mx-auto flex size-10 items-center justify-center rounded-xl ${
+          accent ? "bg-petrol-600/15 text-petrol-700" : "bg-navy-900/5 text-navy-700"
+        }`}
+      >
+        {icon}
+      </div>
+      <p className="mt-2 text-[9px] font-medium text-charcoal-500 line-clamp-1">{title}</p>
+      <p className="mt-0.5 text-sm font-bold text-navy-900">{value}</p>
+    </div>
   );
 }

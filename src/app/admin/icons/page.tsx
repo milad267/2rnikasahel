@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Upload, X, Search, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 
@@ -10,11 +10,11 @@ export default function IconsPage() {
   const [search, setSearch] = useState("");
   const [uploading, setUploading] = useState(false);
 
-  useState(() => {
+  useEffect(() => {
     fetch("/api/admin/upload?category=icon").then(r => r.json()).then(data => {
       setIcons(data.map((f: any) => f.url));
     }).catch(() => {}).finally(() => setLoading(false));
-  });
+  }, []);
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;

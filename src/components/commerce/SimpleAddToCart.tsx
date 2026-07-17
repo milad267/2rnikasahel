@@ -14,16 +14,20 @@ export function SimpleAddToCart({ productId, variantId, price, stock }: { produc
 
   async function handleAdd() {
     setPending(true);
-    const res = await fetch("/api/cart/items", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ variantId, quantity: qty }),
-    });
+    try {
+      const res = await fetch("/api/cart/items", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ variantId, quantity: qty, productId }),
+      });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || "خطا"); }
+      setDone(true);
+      router.refresh();
+      setTimeout(() => setDone(false), 2000);
+    } catch (e: any) {
+      alert(e.message || "خطا");
+    }
     setPending(false);
-    if (!res.ok) return;
-    setDone(true);
-    router.refresh();
-    setTimeout(() => setDone(false), 2000);
   }
 
   return (

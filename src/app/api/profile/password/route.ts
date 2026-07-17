@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { getCurrentUser, hashPassword, verifyPassword } from "@/lib/auth";
+import { safeErrorResponse } from "@/lib/safe-error";
 
 /** PUT: تغییر رمز عبور */
 export async function PUT(req: NextRequest) {
@@ -45,6 +46,6 @@ export async function PUT(req: NextRequest) {
 
     return NextResponse.json({ ok: true, message: "رمز عبور با موفقیت تغییر کرد." });
   } catch (error) {
-    return NextResponse.json({ ok: false, error: (error as Error).message }, { status: 500 });
+    return safeErrorResponse(error, "profile-password");
   }
 }

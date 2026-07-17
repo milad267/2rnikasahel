@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { getCurrentUser, hashPassword, verifyPassword } from "@/lib/auth";
+import { safeErrorResponse } from "@/lib/safe-error";
 
 /** GET: اطلاعات پروفایل */
 export async function GET() {
@@ -25,15 +26,22 @@ export async function PUT(req: NextRequest) {
     const email = body?.email !== undefined
       ? (body.email ? String(body.email).trim() : null)
       : undefined;
+    const birthDate = body?.birthDate !== undefined
+      ? (body.birthDate ? String(body.birthDate).trim() : null)
+      : undefined;
 
     if (name && (name.length < 2 || name.length > 160)) {
       return NextResponse.json({ ok: false, error: "نام باید بین ۲ تا ۱۶۰ کاراکتر باشد." }, { status: 400 });
+    }
+    if (birthDate && !/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) {
+      return NextResponse.json({ ok: false, error: "فرمت تاریخ تولد نامعتبر است." }, { status: 400 });
     }
 
     const updates: Record<string, any> = {};
     if (name !== undefined) updates.name = name;
     if (companyName !== undefined) updates.companyName = companyName;
     if (email !== undefined) updates.email = email;
+    if (birthDate !== undefined) updates.birthDate = birthDate;
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ ok: false, error: "هیچ تغییری ارسال نشده." }, { status: 400 });
@@ -43,10 +51,10 @@ export async function PUT(req: NextRequest) {
       .update(users)
       .set(updates)
       .where(eq(users.id, user.id))
-      .returning({ id: users.id, name: users.name, email: users.email, companyName: users.companyName });
+      .returning({ id: users.id, name: users.name, email: users.email, companyName: users.companyName, birthDate: users.birthDate });
 
     return NextResponse.json({ ok: true, user: updated });
   } catch (error) {
-    return NextResponse.json({ ok: false, error: (error as Error).message }, { status: 500 });
+    return safeErrorResponse(error, "profile-update");
   }
 }

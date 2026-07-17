@@ -21,10 +21,41 @@ dev-server.log
 # typescript
 *.tsbuildinfo
 
+# IDE and editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
 # misc
 .DS_Store
 skills/
 .zcode/
+.continue/
+
+# backup and temp
 backups/
 download/
 upload/
+temp/
+tmp/
+
+# storage (persistent data)
+storage/
+!storage/.gitkeep
+
+# uploaded files (not committed)
+public/uploads/*
+!public/uploads/.gitkeep
+
+# certificates (SSL keys - sensitive)
+certificates/*
+!certificates/.gitkeep
+
+# screenshots (generated)
+screenshots/
+
+# OS files
+Thumbs.db
+desktop.ini

@@ -1,0 +1,35 @@
+[Unit]
+Description=Dornika Sahel - Installer Worker (Root-owned, Polling)
+Documentation=https://github.com/yourusername/dornika-sahel
+After=network.target dornika.service
+Wants=dornika.service
+
+[Service]
+Type=simple
+User=root
+Group=root
+
+# Working directory - Root-owned installer directory
+WorkingDirectory=/usr/local/lib/dornika-installer
+
+# Execution - runs from Root-owned directory, NOT from project directory
+ExecStart=/bin/bash /usr/local/lib/dornika-installer/dornika-installer.sh
+
+# Restart policy - always restart if it fails
+Restart=always
+RestartSec=10s
+
+# Security hardening
+NoNewPrivileges=false
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/dornika /var/lib/dornika-installer /etc/nginx/sites-available /etc/nginx/sites-enabled /etc/ufw /etc/dornika
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=dornika-installer
+
+[Install]
+WantedBy=multi-user.target

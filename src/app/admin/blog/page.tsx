@@ -13,7 +13,7 @@ import { Modal } from "@/components/admin/Modal";
 type Post = { id: number; title: string; slug: string; status: string; featuredImage: string | null; views: number; publishedAt: string | null; createdAt: string; categoryName: string | null; };
 type Cat = { id: number; name: string; slug: string; };
 
-const EMPTY_FORM = { title: "", slug: "", excerpt: "", content: "", featuredImage: "", categoryId: 0, status: "draft", metaTitle: "", metaDesc: "", tags: "", allowComments: true };
+const EMPTY_FORM = { title: "", slug: "", excerpt: "", content: "", featuredImage: "", videoUrl: "", categoryId: 0, status: "published", metaTitle: "", metaDesc: "", tags: "", allowComments: true };
 
 export default function BlogPage() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -68,6 +68,7 @@ export default function BlogPage() {
         excerpt: p.excerpt || "",
         content: p.content || "",
         featuredImage: p.featuredImage || "",
+        videoUrl: p.videoUrl || "",
         categoryId: p.categoryId || 0,
         status: p.status || "draft",
         metaTitle: p.metaTitle || "",
@@ -174,7 +175,7 @@ export default function BlogPage() {
               {filtered.map(p => <tr key={p.id} className="border-b border-slate-50 hover:bg-slate-50/80">
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <div className="flex size-10 items-center justify-center rounded-xl bg-slate-100 text-slate-400">{p.featuredImage ? <img src={p.featuredImage} className="size-full rounded-xl object-cover" /> : <FileText className="size-5" />}</div>
+                    <div className="flex size-10 items-center justify-center rounded-xl bg-slate-100 text-slate-400">{p.featuredImage ? <img src={p.featuredImage} alt={p.title} className="size-full rounded-xl object-cover" /> : <FileText className="size-5" />}</div>
                     <div><p className="text-sm font-semibold text-slate-900">{p.title}</p><p className="text-[10px] text-slate-500">/{p.slug}</p></div>
                   </div>
                 </td>
@@ -262,19 +263,69 @@ export default function BlogPage() {
           {/* تب ۲: رسانه و دسته‌بندی */}
           <div className={activeTab === "media" ? "space-y-5" : "hidden"}>
             <div className="grid gap-4 sm:grid-cols-2">
-              <div><label className="mb-1.5 block text-xs font-semibold text-slate-700">دسته‌بندی</label>
-                <select value={form.categoryId} onChange={e => setForm(f => ({ ...f, categoryId: Number(e.target.value) }))} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs outline-none">
-                  <option value={0}>بدون دسته</option>
-                  {cats.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select></div>
               <div><label className="mb-1.5 block text-xs font-semibold text-slate-700">وضعیت</label>
                 <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs outline-none">
                   <option value="draft">پیش‌نویس</option>
                   <option value="published">منتشر شده</option>
                 </select></div>
+              <div><label className="mb-1.5 block text-xs font-semibold text-slate-700">دسته‌بندی</label>
+                <select value={form.categoryId} onChange={e => setForm(f => ({ ...f, categoryId: Number(e.target.value) }))} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs outline-none">
+                  <option value={0}>بدون دسته‌بندی</option>
+                  {cats.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                </select></div>
             </div>
 
-            <div><label className="mb-1.5 block text-xs font-semibold text-slate-700">تصویر شاخص</label><ImageUpload value={form.featuredImage} onChange={v => setForm(f => ({ ...f, featuredImage: v as string }))} /></div>
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-slate-700">تصویر شاخص</label>
+              <ImageUpload value={form.featuredImage} onChange={v => setForm(f => ({ ...f, featuredImage: v as string }))} category="blog" sizeHint="📐 سایز پیشنهادی: ۱۲۰۰×۶۳۰ پیکسل | فرمت‌ها: JPG، PNG، WebP، GIF" />
+            </div>
+
+            <div>
+              <div className="mb-1.5 flex items-center justify-between">
+                <label className="block text-xs font-semibold text-slate-700">ویدیو (اختیاری)</label>
+                <span className="text-[10px] text-slate-400">فرمت‌های MP4, WebM, MOV</span>
+              </div>
+              <div className="flex gap-2">
+                <input type="text" value={form.videoUrl} onChange={e => setForm(f => ({ ...f, videoUrl: e.target.value }))}
+                  placeholder="آدرس ویدیو (YouTube, آپارات یا آپلود خودتان)"
+                  className="flex-1 rounded-xl border border-slate-200 px-3 py-2.5 text-xs outline-none focus:border-petrol-500 font-mono" dir="ltr" />
+                <button type="button" onClick={async () => {
+                  const input = document.createElement("input");
+                  input.type = "file";
+                  input.accept = "video/mp4,video/webm,video/quicktime";
+                  input.onchange = async (e: any) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const fd = new FormData();
+                    fd.append("file", file);
+                    fd.append("category", "blog");
+                    toast.info("در حال آپلود ویدیو...");
+                    try {
+                      const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
+                      const data = await res.json();
+                      if (data.ok && data.file?.url) {
+                        setForm(f => ({ ...f, videoUrl: data.file.url }));
+                        toast.success("✅ ویدیو آپلود شد");
+                      } else toast.error(data.error || "خطا");
+                    } catch { toast.error("خطا در آپلود"); }
+                  };
+                  input.click();
+                }} className="shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[10px] text-slate-600 hover:bg-slate-50">
+                  آپلود ویدیو
+                </button>
+              </div>
+              {form.videoUrl && (
+                <div className="mt-2 rounded-xl border border-slate-200 overflow-hidden">
+                  {form.videoUrl.includes("youtube") || form.videoUrl.includes("youtu.be") || form.videoUrl.includes("aparat") ? (
+                    <div className="aspect-video bg-slate-100 flex items-center justify-center text-[10px] text-slate-400">
+                      🎬 ویدیو از {form.videoUrl.includes("youtube") ? "YouTube" : "آپارات"}
+                    </div>
+                  ) : (
+                    <video src={form.videoUrl} controls className="w-full max-h-48 rounded-lg" />
+                  )}
+                </div>
+              )}
+            </div>
 
             <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={form.allowComments} onChange={e => setForm(f => ({ ...f, allowComments: e.target.checked }))} className="size-4 accent-petrol-600" /> امکان ثبت دیدگاه (کامنت)</label>
           </div>

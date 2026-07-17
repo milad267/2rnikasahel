@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Phone, Mail, Lock, User, Smartphone, KeyRound, Globe, ArrowRight, CheckCircle2, Timer, RefreshCw } from "lucide-react";
+import { Phone, Mail, Lock, User, Smartphone, KeyRound, ArrowRight, CheckCircle2, Timer, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LuxePopup } from "@/components/ui/LuxePopup";
 
@@ -93,8 +93,6 @@ export function AuthPopup({ open, onClose }: { open: boolean; onClose: () => voi
     } catch (err) { setError((err as Error).message); }
     finally { setLoading(false); }
   }
-
-  function loginWithGoogle() { setError("ورود با گوگل به‌زودی فعال می‌شود."); }
 
   function handleCodeChange(index: number, value: string) {
     if (value && !/^\d$/.test(value)) return;
@@ -242,18 +240,6 @@ export function AuthPopup({ open, onClose }: { open: boolean; onClose: () => voi
           </button>
         </form>
       )}
-
-      {/* ─── دکمه ورود با گوگل ─── */}
-      <div className="mt-4">
-        <div className="relative mb-4">
-          <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-navy-900/10" /></div>
-          <div className="relative flex justify-center text-xs text-charcoal-400"><span className="bg-white px-3">یا</span></div>
-        </div>
-        <button type="button" onClick={loginWithGoogle}
-          className="flex w-full items-center justify-center gap-2.5 rounded-full border border-navy-900/15 bg-white px-6 py-3 text-xs font-semibold text-navy-900 shadow-sm transition-all hover:bg-navy-900/[0.02] hover:shadow-md">
-          <Globe className="size-4" strokeWidth={1.7} /> ورود با حساب گوگل
-        </button>
-      </div>
     </LuxePopup>
   );
 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir } from "node:fs/promises";
+import { writeFile, mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
 import sharp from "sharp";
@@ -7,8 +7,31 @@ import { db } from "@/db";
 import { uploadedFiles } from "@/db/schema";
 import { getSetting } from "@/lib/settings";
 import { getCurrentUser } from "@/lib/auth";
+import { CHAT_STORAGE, UPLOAD_PUBLIC_DIR } from "@/lib/storage-paths";
 
 export const dynamic = "force-dynamic";
+
+const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+const SAFE_FILENAME = /^[a-f0-9]{48}\.(?:jpe?g|png|webp|gif)$/i;
+
+async function readLocalImage(imageUrl: string) {
+  if (imageUrl.startsWith("/api/assistant/file")) {
+    const id = new URL(imageUrl, "http://local").searchParams.get("id") || "";
+    if (!SAFE_FILENAME.test(id)) throw new Error("تصویر چت نامعتبر است");
+    return readFile(path.join(CHAT_STORAGE, id));
+  }
+
+  if (imageUrl.startsWith("/api/public/file")) {
+    const id = new URL(imageUrl, "http://local").searchParams.get("id") || "";
+    if (!/^[a-f0-9]+\.[a-z0-9]{1,10}$/i.test(id)) throw new Error("تصویر نامعتبر است");
+    return readFile(path.join(UPLOAD_PUBLIC_DIR, id));
+  }
+
+  const publicRoot = path.resolve(process.cwd(), "public");
+  const imagePath = path.resolve(publicRoot, imageUrl.replace(/^\/+/, ""));
+  if (!imagePath.startsWith(publicRoot + path.sep)) throw new Error("مسیر تصویر نامعتبر است");
+  return readFile(imagePath);
+}
 
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser();
@@ -25,19 +48,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "آدرس تصویر الزامی است" }, { status: 400 });
     }
 
-    // خواندن API key ریمو بک‌گراند از تنظیمات
-    const removeBgApiKey = await getSetting<string>("services.removebg.api_key", "services");
-
     let resultBuffer: Buffer | null = null;
     let sourceType = "";
+
+    // خواندن API key ریمو بک‌گراند از تنظیمات
+    const removeBgApiKey = await getSetting<string>("services.removebg.api_key", "services");
 
     // ── روش ۱: استفاده از Remove.bg API ──
     if (removeBgApiKey && (method === "auto" || method === "removebg")) {
       try {
         // دریافت تصویر از سرور محلی
-        const imagePath = path.join(process.cwd(), "public", imageUrl.replace(/^\//, ""));
-        const fs = require("node:fs");
-        const imageBuffer = fs.readFileSync(imagePath);
+        const imageBuffer = await readLocalImage(imageUrl);
 
         const formData = new FormData();
         const blob = new Blob([imageBuffer], { type: "image/png" });
@@ -65,9 +86,13 @@ export async function POST(req: NextRequest) {
     // ── روش ۲: استفاده از Sharp (پس‌زمینه سفید ساده) ──
     if (!resultBuffer && (method === "auto" || method === "sharp")) {
       try {
-        const imagePath = path.join(process.cwd(), "public", imageUrl.replace(/^\//, ""));
-        const fs = require("node:fs");
-        const buffer = fs.readFileSync(imagePath);
+        const buffer = await readLocalImage(imageUrl);
+
+        // Validate image with Sharp first
+        const metadata = await sharp(buffer).metadata();
+        if (!metadata.width || !metadata.height) {
+          throw new Error("فایل تصویری نامعتبر است");
+        }
 
         // استفاده از آستانه‌گذاری ساده برای حذف پس‌زمینه سفید
         const image = sharp(buffer);
@@ -110,13 +135,13 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    // ── ذخیره تصویر پردازش شده ──
-    const safeName = `nobg-${crypto.randomBytes(8).toString("hex")}.png`;
-    const uploadDir = path.join(process.cwd(), "public", "uploads");
-    await mkdir(uploadDir, { recursive: true });
-    await writeFile(path.join(uploadDir, safeName), resultBuffer);
+    // ── ذخیره تصویر پردازش شده در APP_DATA_DIR ──
+    const storageName = `${crypto.randomBytes(12).toString("hex")}.png`;
+    await mkdir(UPLOAD_PUBLIC_DIR, { recursive: true, mode: 0o750 });
+    const outputPath = path.join(UPLOAD_PUBLIC_DIR, storageName);
+    await writeFile(outputPath, resultBuffer, { mode: 0o644 });
 
-    const url = `/uploads/${safeName}`;
+    const url = `/api/public/file?id=${storageName}`;
     const [saved] = await db
       .insert(uploadedFiles)
       .values({
@@ -126,6 +151,9 @@ export async function POST(req: NextRequest) {
         size: resultBuffer.length,
         category: "product",
         altText: "بدون پس‌زمینه",
+        visibility: "public",
+        ownerUserId: user.id,
+        ownerType: "admin",
       })
       .returning();
 
@@ -138,6 +166,7 @@ export async function POST(req: NextRequest) {
         : "⚠️ پس‌زمینه سفید حذف شد (روش پایه)",
     });
   } catch (error) {
-    return NextResponse.json({ ok: false, error: (error as Error).message }, { status: 500 });
+    console.error("[REMOVE-BG] Internal error:", error);
+    return NextResponse.json({ ok: false, error: "خطای داخلی سرور." }, { status: 500 });
   }
 }

@@ -22,10 +22,10 @@ export function LanguageSwitcher({ current }: { current: Locale }) {
       aria-label="تغییر زبان"
       aria-busy={pending}
       title={current === "fa" ? "Switch to English" : "تغییر به فارسی"}
-      className="flex size-9 items-center justify-center rounded-full bg-pearl-50 text-navy-900 shadow-md transition-all hover:bg-pearl-100 hover:scale-105 disabled:opacity-60"
+      className="flex size-9 items-center justify-center rounded-full bg-petrol-600 text-pearl-50 shadow-[var(--shadow-glow-petrol)] transition-all hover:bg-petrol-500 hover:scale-105 disabled:opacity-60"
       disabled={pending}
     >
-      <Languages className="size-4 text-petrol-700" strokeWidth={1.8} />
+      <Languages className="size-4 text-pearl-50" strokeWidth={1.8} />
     </button>
   );
 }

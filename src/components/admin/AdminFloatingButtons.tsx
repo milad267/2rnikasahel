@@ -34,7 +34,7 @@ export function AdminFloatingButtons() {
             <QuickItem label="محصول جدید" href="/admin/products" />
             <QuickItem label="سفارش جدید" href="/admin/orders" />
             <QuickItem label="گزارش فروش" href="/admin?report=sales" />
-            <QuickItem label="تنظیمات پیامک" href="/admin/sms" />
+            <QuickItem label="تنظیمات پیامک" href="/admin/communications" />
           </div>
         </div>
       )}

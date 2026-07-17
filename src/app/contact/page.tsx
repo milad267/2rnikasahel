@@ -2,22 +2,33 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Phone, Mail, MapPin, Clock, MessageSquare } from "lucide-react";
 import { ContactForm } from "./ContactForm";
+import { getSetting } from "@/lib/settings";
 
 export const metadata: Metadata = {
   title: "تماس با ما",
   description: "راه‌های ارتباط با درنیکا ساحل؛ تلفن، ایمیل، آدرس و فرم تماس.",
 };
 
-const info = [
-  { icon: Phone, title: "تلفن تماس", value: "۰۲۱-۱۲۳۴۵۶۷۸", href: "tel:02112345678", dir: "ltr" as const },
-  { icon: Mail, title: "ایمیل", value: "info@dornikasahel.com", href: "mailto:info@dornikasahel.com", dir: "ltr" as const },
-  { icon: MapPin, title: "آدرس", value: "تهران، خیابان ولیعصر، مرکز تجهیزات صنعتی", href: null, dir: "rtl" as const },
-  { icon: Clock, title: "ساعات کاری", value: "شنبه تا پنجشنبه، ۹ صبح تا ۶ عصر", href: null, dir: "rtl" as const },
-];
+async function getContactInfo() {
+  const phone = await getSetting<string>("contact.phone", "general");
+  const email = await getSetting<string>("contact.email", "general");
+  const address = await getSetting<string>("contact.address", "general");
+  const hours = await getSetting<string>("contact.hours", "general");
+  return { phone, email, address, hours };
+}
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const info = await getContactInfo();
+
+  const contactItems = [
+    { icon: Phone, title: "تلفن تماس", value: info.phone || "لطفاً از پنل مدیریت تنظیم کنید", href: info.phone ? `tel:${info.phone}` : null, dir: "ltr" as const },
+    { icon: Mail, title: "ایمیل", value: info.email || "لطفاً از پنل مدیریت تنظیم کنید", href: info.email ? `mailto:${info.email}` : null, dir: "ltr" as const },
+    { icon: MapPin, title: "آدرس", value: info.address || "لطفاً از پنل مدیریت تنظیم کنید", href: null, dir: "rtl" as const },
+    { icon: Clock, title: "ساعات کاری", value: info.hours || "شنبه تا پنجشنبه، ۹ صبح تا ۶ عصر", href: null, dir: "rtl" as const },
+  ];
+
   return (
-    <div className="min-h-screen px-4 pb-24 pt-32 sm:px-6 lg:px-8 lg:pt-44">
+    <div className="min-h-screen px-4 pb-24 pt-40 sm:px-6 lg:px-8 lg:pt-44">
       <div className="mx-auto max-w-[96rem]">
         {/* مسیر ناوبری */}
         <nav className="mb-6 flex items-center gap-2 text-xs text-charcoal-500">
@@ -44,7 +55,7 @@ export default function ContactPage() {
         <div className="grid gap-6 lg:grid-cols-5">
           {/* اطلاعات تماس */}
           <div className="space-y-4 lg:col-span-2">
-            {info.map((item) => {
+            {contactItems.map((item) => {
               const Icon = item.icon;
               const content = (
                 <div className="card flex items-start gap-4 rounded-[1.5rem] p-5 transition-all hover:shadow-[0_20px_50px_-30px_rgba(19,78,92,0.5)]">

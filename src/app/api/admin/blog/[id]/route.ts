@@ -26,14 +26,21 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!user || (user.role !== "superadmin" && user.role !== "admin")) return NextResponse.json({ ok: false, error: "دسترسی غیرمجاز" }, { status: 403 });
   const { id } = await params;
   const body = await req.json();
+  const isVideo = !!body.videoUrl;
+  // وقتی وضعیت به "منتشر شده" تغییر می‌کند، اگر publishedAt تنظیم نشده بود، آن را تنظیم کن
+  const shouldSetPublishedAt = body.status === "published";
   const [updated] = await db.update(blogPosts).set({
     ...(body.title && { title: body.title }), ...(body.slug && { slug: body.slug }),
     ...(body.excerpt !== undefined && { excerpt: body.excerpt }), ...(body.content !== undefined && { content: body.content }),
-    ...(body.featuredImage !== undefined && { featuredImage: body.featuredImage }),
+    ...(body.featuredImage !== undefined && { featuredImage: isVideo ? body.videoUrl : body.featuredImage }),
+    ...(body.videoUrl !== undefined && { featuredImage: body.videoUrl, mediaType: "video" }),
+    ...(body.videoUrl !== undefined && body.videoUrl === "" && { featuredImage: "", mediaType: "image" }),
     ...(body.categoryId !== undefined && { categoryId: body.categoryId || null }),
-    ...(body.status && { status: body.status }), ...(body.metaTitle !== undefined && { metaTitle: body.metaTitle }),
+    ...(body.status && { status: body.status }),
+    ...(body.metaTitle !== undefined && { metaTitle: body.metaTitle }),
     ...(body.metaDesc !== undefined && { metaDesc: body.metaDesc }),
     ...(body.allowComments !== undefined && { allowComments: body.allowComments }),
+    ...(shouldSetPublishedAt ? { publishedAt: new Date() } : {}),
     updatedAt: new Date(),
   }).where(eq(blogPosts.id, Number(id))).returning();
 

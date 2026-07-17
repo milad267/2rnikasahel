@@ -36,7 +36,7 @@ export function LogoutButton({ compact, onClick }: { compact?: boolean; onClick?
       type="button"
       onClick={handleLogout}
       disabled={loading}
-      className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50/50 px-4 py-2 text-xs font-semibold text-red-600 transition-all hover:bg-red-100 disabled:opacity-50"
+      className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50/50 px-4 py-2 text-xs font-semibold text-red-600 transition-all hover:bg-red-100 disabled:opacity-50 max-sm:w-full max-sm:px-3 max-sm:py-2"
     >
       <LogOut className="size-4" strokeWidth={1.8} />
       {loading ? "در حال خروج..." : "خروج از حساب"}

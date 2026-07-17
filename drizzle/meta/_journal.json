@@ -1,0 +1,83 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1783888525011,
+      "tag": "0000_special_the_captain",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1752448800000,
+      "tag": "0001_add_file_visibility",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1752535200000,
+      "tag": "0002_add_superadmin_unique_constraint",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1784164214852,
+      "tag": "0003_parched_warstar",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1784250000000,
+      "tag": "0004_add_cart_user_id",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1784234450844,
+      "tag": "0005_add_discount_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1784248492771,
+      "tag": "0006_smiling_adam_destine",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1784249613391,
+      "tag": "0007_rapid_zeigeist",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1784250745218,
+      "tag": "0008_sad_stranger",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1784251878143,
+      "tag": "0009_ancient_jigsaw",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1784253525963,
+      "tag": "0010_brown_cerebro",
+      "breakpoints": true
+    }
+  ]
+}

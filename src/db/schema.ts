@@ -8,6 +8,8 @@ import {
   timestamp,
   jsonb,
   decimal,
+  date,
+  index,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 
@@ -31,6 +33,18 @@ export const adminUsers = pgTable(
       .defaultNow(),
   },
   (table) => [uniqueIndex("admin_users_email_idx").on(table.email)],
+);
+
+/** جلسات ادمین برای احراز هویت */
+export const adminSessions = pgTable(
+  "admin_sessions",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id").notNull().references(() => adminUsers.id, { onDelete: "cascade" }),
+    token: varchar("token", { length: 200 }).notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
 );
 
 /** تنظیمات و محتوای قابل‌ویرایش سایت */
@@ -110,6 +124,9 @@ export const products = pgTable(
     categoryId: integer("category_id").references(() => categories.id, {
       onDelete: "restrict",
     }),
+    brandId: integer("brand_id").references(() => brands.id, {
+      onDelete: "set null",
+    }),
     slug: varchar("slug", { length: 200 }).notNull(),
     title: varchar("title", { length: 300 }).notNull(),
     subtitle: varchar("subtitle", { length: 300 }),
@@ -117,6 +134,7 @@ export const products = pgTable(
     images: jsonb("images").$type<string[]>().notNull().default([]),
     coverImage: varchar("cover_image", { length: 500 }),
     isActive: boolean("is_active").notNull().default(true),
+    isFeatured: boolean("is_featured").notNull().default(false),
     sortOrder: integer("sort_order").notNull().default(0),
     metaTitle: varchar("meta_title", { length: 300 }),
     metaDesc: text("meta_desc"),
@@ -140,6 +158,11 @@ export const productVariants = pgTable(
     nameEn: varchar("name_en", { length: 200 }),
     /** قیمت به ریال */
     price: decimal("price", { precision: 14, scale: 0 }).notNull().default("0"),
+    /** تخفیف */
+    hasDiscount: boolean("has_discount").notNull().default(false),
+    discountType: varchar("discount_type", { length: 10 }).default("percent"),
+    discountValue: decimal("discount_value", { precision: 14, scale: 0 }).default("0"),
+    discountPrice: decimal("discount_price", { precision: 14, scale: 0 }).default("0"),
     /** مقدار واحد (مثلاً ۵ متر، ۲ شاخه) */
     unitValue: varchar("unit_value", { length: 60 }),
     stock: integer("stock").notNull().default(0),
@@ -158,10 +181,14 @@ export const carts = pgTable(
   {
     id: serial("id").primaryKey(),
     sessionToken: varchar("session_token", { length: 80 }).notNull(),
+    userId: integer("user_id").references(() => users.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [uniqueIndex("carts_session_token_idx").on(table.sessionToken)],
+  (table) => [
+    uniqueIndex("carts_session_token_idx").on(table.sessionToken),
+    index("carts_user_id_idx").on(table.userId),
+  ],
 );
 
 /** آیتم‌های سبد خرید — با snapshot از نام و قیمت هنگام افزودن */
@@ -256,7 +283,12 @@ export const users = pgTable(
     role: varchar("role", { length: 40 }).notNull().default("customer"), // customer, contractor
     companyName: varchar("company_name", { length: 200 }),
     economicCode: varchar("economic_code", { length: 80 }),
+    avatar: varchar("avatar", { length: 500 }),
+    birthDate: date("birth_date"),
     isActive: boolean("is_active").notNull().default(true),
+    failedLoginAttempts: integer("failed_login_attempts").notNull().default(0),
+    lockedUntil: timestamp("locked_until", { withTimezone: true }),
+    lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -294,9 +326,16 @@ export const orders = pgTable(
       .references(() => users.id, { onDelete: "restrict" }),
     status: varchar("status", { length: 60 }).notNull().default("pending_payment"), // pending_payment, paid, processing, shipped, delivered, cancelled
     totalAmount: decimal("total_amount", { precision: 14, scale: 0 }).notNull().default("0"),
+    shippingCost: decimal("shipping_cost", { precision: 14, scale: 0 }).notNull().default("0"),
     shippingAddress: text("shipping_address").notNull(),
+    province: varchar("province", { length: 100 }).notNull().default(""),
+    city: varchar("city", { length: 100 }).notNull().default(""),
+    postalCode: varchar("postal_code", { length: 20 }),
+    receiverName: varchar("receiver_name", { length: 160 }),
+    receiverPhone: varchar("receiver_phone", { length: 30 }),
     paymentMethod: varchar("payment_method", { length: 80 }).default("zarinpal"),
     paymentRef: varchar("payment_ref", { length: 120 }),
+    shippingMethodId: integer("shipping_method_id"),
     notes: text("notes"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -347,6 +386,12 @@ export const uploadedFiles = pgTable("uploaded_files", {
   /** دسته‌بندی فایل برای تفکیک (slide, product, blog, general) */
   category: varchar("category", { length: 40 }).notNull().default("general"),
   altText: varchar("alt_text", { length: 255 }),
+  /** visibility: public یا private */
+  visibility: varchar("visibility", { length: 20 }).notNull().default("public"),
+  /** ownerUserId: کاربری که فایل را آپلود کرده (برای فایل‌های خصوصی) */
+  ownerUserId: integer("owner_user_id"),
+  /** ownerType: admin یا user */
+  ownerType: varchar("owner_type", { length: 20 }).notNull().default("admin"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -395,10 +440,44 @@ export const aiPriceUpdateJobs = pgTable("ai_price_update_jobs", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/** رخداد مصرف مدل‌های هوش مصنوعی؛ متن prompt ذخیره نمی‌شود تا حریم خصوصی حفظ شود. */
+export const aiUsageEvents = pgTable("ai_usage_events", {
+  id: serial("id").primaryKey(),
+  agent: varchar("agent", { length: 80 }).notNull().default("chat"),
+  task: varchar("task", { length: 80 }).notNull().default("chat"),
+  provider: varchar("provider", { length: 80 }).notNull(),
+  model: varchar("model", { length: 160 }).notNull(),
+  userId: integer("user_id").references(() => users.id, { onDelete: "set null" }),
+  isAdmin: boolean("is_admin").notNull().default(false),
+  promptTokens: integer("prompt_tokens").notNull().default(0),
+  completionTokens: integer("completion_tokens").notNull().default(0),
+  totalTokens: integer("total_tokens").notNull().default(0),
+  estimatedCostUsd: decimal("estimated_cost_usd", { precision: 14, scale: 8 }).notNull().default("0"),
+  usageSource: varchar("usage_source", { length: 30 }).notNull().default("provider"),
+  latencyMs: integer("latency_ms").notNull().default(0),
+  status: varchar("status", { length: 20 }).notNull().default("success"),
+  errorCode: varchar("error_code", { length: 100 }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** حافظه (تاریخچه) مکالمات دستیار هوشمند */
+export const assistantSessions = pgTable(
+  "assistant_sessions",
+  {
+    id: serial("id").primaryKey(),
+    sessionId: varchar("session_id", { length: 128 }).notNull(), // شناسه کاربر یا توکن مهمان
+    messages: jsonb("messages").$type<any[]>().notNull().default([]),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex("assistant_sessions_session_id_idx").on(table.sessionId)],
+);
+
 export type UploadedFile = typeof uploadedFiles.$inferSelect;
 export type QuoteRequest = typeof quoteRequests.$inferSelect;
 export type SmsProvider = typeof smsProviders.$inferSelect;
 export type AiPriceUpdateJob = typeof aiPriceUpdateJobs.$inferSelect;
+export type AiUsageEvent = typeof aiUsageEvents.$inferSelect;
+export type AssistantSession = typeof assistantSessions.$inferSelect;
 
 /* ==========================================================================
    فاز ۶ — برندها، تگ‌ها و ارتباط محصول-تگ
@@ -412,6 +491,7 @@ export const brands = pgTable(
     name: varchar("name", { length: 200 }).notNull(),
     slug: varchar("slug", { length: 200 }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [uniqueIndex("brands_slug_idx").on(table.slug)],
 );
@@ -554,3 +634,185 @@ export const orderHistory = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
 );
+
+/** روش‌های حمل و نقل */
+export const shippingMethods = pgTable(
+  "shipping_methods",
+  {
+    id: serial("id").primaryKey(),
+    title: varchar("title", { length: 200 }).notNull(),
+    description: text("description"),
+    /** هزینه به ریال */
+    cost: decimal("cost", { precision: 14, scale: 0 }).notNull().default("0"),
+    /** حداقل مبلغ سبد خرید برای ارسال رایگان (0 = غیرفعال) */
+    freeThreshold: decimal("free_threshold", { precision: 14, scale: 0 }).notNull().default("0"),
+    /** تعداد روزهای تحویل (مثلاً "۲ تا ۴ روز کاری") */
+    deliveryDays: varchar("delivery_days", { length: 100 }),
+    /** آیا رایگان است (override هزینه) */
+    isFree: boolean("is_free").notNull().default(false),
+    /** آیکون/لوگو (مثلاً emoji یا نام فایل) */
+    logo: varchar("logo", { length: 50 }),
+    /** آدرس پایه رهگیری (مثلاً https://tracking.post.ir/) */
+    trackingBaseUrl: varchar("tracking_base_url", { length: 500 }),
+    sortOrder: integer("sort_order").notNull().default(0),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+);
+
+/** رویدادهای رهگیری سفارش */
+export const orderTracking = pgTable(
+  "order_tracking",
+  {
+    id: serial("id").primaryKey(),
+    orderId: integer("order_id").notNull().references(() => orders.id, { onDelete: "cascade" }),
+    /** وضعیت رهگیری: picked_up, in_transit, out_for_delivery, delivered, failed_attempt, returned, customs, warehouse */
+    status: varchar("status", { length: 60 }).notNull(),
+    /** عنوان قابل نمایش (مثلاً "مرسوله تحویل پست شد") */
+    title: varchar("title", { length: 300 }).notNull(),
+    /** توضیحات کامل */
+    description: text("description"),
+    /** کد رهگیری پستی/تیپاکس/… */
+    trackingCode: varchar("tracking_code", { length: 200 }),
+    /** تاریخ تخمینی تحویل */
+    estimatedDelivery: timestamp("estimated_delivery", { withTimezone: true }),
+    /** مکان فعلی (اختیاری) */
+    location: varchar("location", { length: 200 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("order_tracking_order_idx").on(table.orderId)],
+);
+
+export type ShippingMethod = typeof shippingMethods.$inferSelect;
+export type OrderTracking = typeof orderTracking.$inferSelect;
+export type OrderHistory = typeof orderHistory.$inferSelect;
+
+/* ==========================================================================
+   فاز ۸ — اینستاگرام
+   ========================================================================== */
+
+/** اکانت‌های اینستاگرام */
+export const instagramAccounts = pgTable(
+  "instagram_accounts",
+  {
+    id: serial("id").primaryKey(),
+    username: varchar("username", { length: 200 }).notNull(),
+    password: text("password").notNull(),
+    isActive: boolean("is_active").notNull().default(false),
+    /** لینک V2Ray برای اتصال به اینستاگرام (vless://, vmess://, trojan://, ss://) */
+    v2rayLink: text("v2ray_link"),
+    /** نوع پروکسی: v2ray | http | socks5 | none */
+    proxyType: varchar("proxy_type", { length: 20 }).notNull().default("v2ray"),
+    /** کانفیگ پروکسی دلخواه (host, port, username, password, ...) */
+    proxyConfig: jsonb("proxy_config").$type<Record<string, string>>().default({}),
+    /** آیا پروکسی فعال باشد */
+    useProxy: boolean("use_proxy").notNull().default(true),
+    /** وضعیت VPN */
+    vpnStatus: varchar("vpn_status", { length: 30 }).notNull().default("unknown"),
+    /** آخرین پینگ موفق VPN */
+    lastPingAt: timestamp("last_ping_at", { withTimezone: true }),
+    /** هشدار قطعی VPN */
+    vpnAlertEnabled: boolean("vpn_alert_enabled").notNull().default(true),
+    /** وضعیت تایید دو مرحله‌ای */
+    twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),
+    /** روش تایید دو مرحله‌ای: app | sms */
+    twoFactorMethod: varchar("two_factor_method", { length: 10 }).default("app"),
+    /** کد پشتیبان یا سکرات 2FA */
+    twoFactorSecret: text("two_factor_secret"),
+    /** وضعیت اتصال */
+    loginStatus: varchar("login_status", { length: 40 }).notNull().default("not_connected"),
+    lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
+    cookieData: text("cookie_data"),
+    errorMessage: text("error_message"),
+    /** آمار اکانت */
+    followerCount: integer("follower_count").notNull().default(0),
+    followingCount: integer("following_count").notNull().default(0),
+    mediaCount: integer("media_count").notNull().default(0),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+);
+
+/** صف پست‌های اینستاگرام (برنامه‌ریزی شده / منتشر شده) */
+export const instagramPosts = pgTable(
+  "instagram_posts",
+  {
+    id: serial("id").primaryKey(),
+    accountId: integer("account_id").notNull().references(() => instagramAccounts.id, { onDelete: "cascade" }),
+    productId: integer("product_id").references(() => products.id, { onDelete: "set null" }),
+    /** image | video | carousel */
+    mediaType: varchar("media_type", { length: 30 }).notNull().default("image"),
+    caption: text("caption"),
+    hashtags: text("hashtags"),
+    /** مسیر فایل‌های رسانه در سرور */
+    mediaPaths: jsonb("media_paths").$type<string[]>().notNull().default([]),
+    /** شناسه پست در اینستاگرام بعد از انتشار */
+    instagramPostId: varchar("instagram_post_id", { length: 100 }),
+    instagramPermalink: varchar("instagram_permalink", { length: 500 }),
+    /** draft | scheduled | published | failed */
+    status: varchar("status", { length: 30 }).notNull().default("draft"),
+    scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    likeCount: integer("like_count").notNull().default(0),
+    commentCount: integer("comment_count").notNull().default(0),
+    aiGenerated: boolean("ai_generated").notNull().default(false),
+    aiPrompt: text("ai_prompt"),
+    errorMessage: text("error_message"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("instagram_posts_account_idx").on(table.accountId),
+    index("instagram_posts_status_idx").on(table.status),
+    index("instagram_posts_scheduled_idx").on(table.scheduledAt),
+  ],
+);
+
+/** قوانین پاسخگویی خودکار به دایرکت‌ها */
+export const instagramDmRules = pgTable(
+  "instagram_dm_rules",
+  {
+    id: serial("id").primaryKey(),
+    accountId: integer("account_id").notNull().references(() => instagramAccounts.id, { onDelete: "cascade" }),
+    /** کلمات کلیدی ماشه */
+    triggerKeywords: jsonb("trigger_keywords").$type<string[]>().notNull().default([]),
+    /** text | product_link | ai */
+    responseType: varchar("response_type", { length: 30 }).notNull().default("text"),
+    responseText: text("response_text"),
+    aiPrompt: text("ai_prompt"),
+    isActive: boolean("is_active").notNull().default(true),
+    priority: integer("priority").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("instagram_dm_rules_account_idx").on(table.accountId)],
+);
+
+/** تاریخچه مکالمات دایرکت */
+export const instagramConversations = pgTable(
+  "instagram_conversations",
+  {
+    id: serial("id").primaryKey(),
+    accountId: integer("account_id").notNull().references(() => instagramAccounts.id, { onDelete: "cascade" }),
+    /** شناسه کاربر اینستاگرام */
+    senderId: varchar("sender_id", { length: 100 }).notNull(),
+    senderUsername: varchar("sender_username", { length: 200 }),
+    message: text("message").notNull(),
+    /** received | sent | auto_replied */
+    direction: varchar("direction", { length: 30 }).notNull().default("received"),
+    repliedWithRule: integer("replied_with_rule"),
+    repliedPostId: integer("replied_post_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("instagram_conversations_account_idx").on(table.accountId),
+    index("instagram_conversations_sender_idx").on(table.senderId),
+  ],
+);
+
+export type InstagramAccount = typeof instagramAccounts.$inferSelect;
+export type InstagramPost = typeof instagramPosts.$inferSelect;
+export type InstagramDmRule = typeof instagramDmRules.$inferSelect;
+export type InstagramConversation = typeof instagramConversations.$inferSelect;

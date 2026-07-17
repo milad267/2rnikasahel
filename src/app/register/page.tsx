@@ -1,5 +1,5 @@
-import LoginPage from "@/app/login/page";
+import { redirect } from "next/navigation";
 
 export default function RegisterPage() {
-  return <LoginPage />;
+  redirect("/login?mode=register");
 }

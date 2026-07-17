@@ -4,8 +4,12 @@ import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { createAuthToken, USER_TOKEN_COOKIE, hashPassword } from "@/lib/auth";
 import { verifyOtp } from "@/lib/otp-store";
+import { enforceRateLimit } from "@/lib/request-security";
+import { mergeGuestCart, SESSION_COOKIE } from "@/lib/commerce";
 
 export async function POST(req: NextRequest) {
+  const limited = enforceRateLimit(req, "otp-verify", 12, 5 * 60 * 1000);
+  if (limited) return limited;
   try {
     const body = await req.json().catch(() => null);
     const target = String(body?.target || "").trim();
@@ -21,11 +25,11 @@ export async function POST(req: NextRequest) {
     }
 
     // بررسی کد (علیه rate limiting و expiration)
-    const result = verifyOtp(target, code);
+    const result = await verifyOtp(target, code);
 
-    // پشتیبانی از کد ثابت توسعه
+    // پشتیبانی از کد ثابت توسعه (فقط در محیط development)
     const isDevBypass =
-      process.env.NODE_ENV !== "production" && code === "123456";
+      process.env.NODE_ENV === "development" && code === "123456";
 
     if (!result.valid && !isDevBypass) {
       return NextResponse.json(
@@ -34,13 +38,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // تشخیص نوع target
+    // تشخیص نوع target — نرمال‌سازی شماره موبایل
     const cleanTarget = target.replace(/\s/g, "");
     const isPhone = /^0?9\d{9}$/.test(cleanTarget);
     const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(target);
+    // شماره موبایل را نرمال کن: اگر با ۹ شروع شد، ۰ اضافه کن
+    const normalizedPhone = isPhone
+      ? (cleanTarget.startsWith("0") ? cleanTarget : "0" + cleanTarget)
+      : null;
 
-    let [user] = isPhone
-      ? await db.select().from(users).where(eq(users.phone, target)).limit(1)
+    let [user] = isPhone && normalizedPhone !== null
+      ? await db.select().from(users).where(eq(users.phone, normalizedPhone)).limit(1)
       : isEmail
         ? await db.select().from(users).where(eq(users.email, target)).limit(1)
         : [undefined];
@@ -67,7 +75,7 @@ export async function POST(req: NextRequest) {
         .insert(users)
         .values({
           name,
-          phone: isPhone ? target : null,
+          phone: isPhone ? normalizedPhone : null,
           email: isEmail ? target : null,
           passwordHash: randomPassword,
           role: "customer",
@@ -90,10 +98,16 @@ export async function POST(req: NextRequest) {
     });
     res.cookies.set(USER_TOKEN_COOKIE, token, {
       path: "/",
-      maxAge: 60 * 60 * 24 * 30, // ۳۰ روز
+      maxAge: 60 * 60 * 24 * 7,
       httpOnly: true,
       sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
     });
+    // ادغام سبد خرید مهمان به حساب کاربری
+    const sessionToken = req.cookies.get(SESSION_COOKIE)?.value;
+    if (sessionToken) {
+      await mergeGuestCart(user.id, sessionToken);
+    }
     return res;
   } catch (error) {
     console.error("[verify-otp]", error);

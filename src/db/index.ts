@@ -4,9 +4,19 @@ import { Pool } from "pg";
 // Only use DATABASE_URL if it looks like a PostgreSQL connection string
 // The start.sh may write DATABASE_URL=file:... which is SQLite, not PostgreSQL
 const rawUrl = process.env.DATABASE_URL || "";
-const databaseUrl = rawUrl.startsWith("postgresql://") || rawUrl.startsWith("postgres://")
+
+// در production حتماً DATABASE_URL باید PostgreSQL باشه
+if (!rawUrl) {
+  const msg = "FATAL: DATABASE_URL is required. Set DATABASE_URL=postgresql://... in .env";
+  if (process.env.NODE_ENV === "production") throw new Error(msg);
+  console.warn("[db] WARNING: DATABASE_URL not set. Using local fallback for development only.");
+}
+
+const databaseUrl = (rawUrl.startsWith("postgresql://") || rawUrl.startsWith("postgres://"))
   ? rawUrl
-  : "postgresql://postgres:postgres@127.0.0.1:5432/app_db";
+  : (process.env.NODE_ENV === "production"
+    ? (() => { throw new Error("FATAL: DATABASE_URL must be a valid PostgreSQL connection string in production."); })()
+    : "postgresql://postgres:postgres@127.0.0.1:5432/app_db");
 
 const globalForDb = globalThis as typeof globalThis & { __arenaNextJsPostgresqlPool?: Pool };
 
@@ -16,9 +26,9 @@ let db: ReturnType<typeof drizzle>;
 try {
   pool = globalForDb.__arenaNextJsPostgresqlPool ?? new Pool({
     connectionString: databaseUrl,
-    max: 1,
-    idleTimeoutMillis: 10000,
-    connectionTimeoutMillis: 3000,
+    max: 5,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000,
   });
 
   // Prevent unhandled pool errors from crashing the process

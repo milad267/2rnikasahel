@@ -20,10 +20,12 @@ export async function GET(req: NextRequest) {
   }
 
   if (q.length >= 2) {
+    // جلوگیری از LIKE injection — فرار کاراکترهای % و _
+    const escaped = q.replace(/[%_]/g, "\\$&");
     clauses.push(
       or(
-        sql`lower(${products.title}) like lower(${`%${q}%`})`,
-        sql`lower(${products.subtitle}) like lower(${`%${q}%`})`,
+        sql`lower(${products.title}) like lower(${`%${escaped}%`})`,
+        sql`lower(${products.subtitle}) like lower(${`%${escaped}%`})`,
       )!,
     );
   }

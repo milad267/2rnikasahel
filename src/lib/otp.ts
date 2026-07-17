@@ -5,19 +5,20 @@ import { sendSms } from "./sms";
 
 /**
  * یک کد OTP جدید تولید کرده و آن را از طریق ایمیل یا پیامک ارسال می‌کند
+ * با تایم‌اوت ۷ ثانیه‌ای برای جلوگیری از کندی
  */
 export async function sendOtp(target: string, type: "phone" | "email") {
   // تولید کد ۶ رقمی
   const code = crypto.randomInt(100000, 999999).toString();
 
   // ذخیره کد و بررسی Rate Limit
-  // اگر تعداد درخواست‌ها زیاد باشد، storeOtp یک RateLimitError پرتاب می‌کند
-  storeOtp(target, code);
+  await storeOtp(target, code);
 
-  const brandName = "درنیکا ساحل"; // این باید از تنظیمات خوانده شود
+  const brandName = "درنیکا ساحل";
 
   if (type === "email") {
-    await sendEmail({
+    // ارسال با تایم‌اوت
+    const emailPromise = sendEmail({
       to: target,
       subject: `کد تایید شما در ${brandName}`,
       html: `
@@ -28,12 +29,19 @@ export async function sendOtp(target: string, type: "phone" | "email") {
         </div>
       `,
     });
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("ارسال ایمیل زمان بر شد")), 7000)
+    );
+    await Promise.race([emailPromise, timeoutPromise]);
   } else {
     // phone
-    await sendSms(target, `کد تایید شما برای ${brandName}: ${code}`);
+    const smsPromise = sendSms(target, `کد تایید شما برای ${brandName}: ${code}`);
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("ارسال پیامک زمان بر شد")), 7000)
+    );
+    await Promise.race([smsPromise, timeoutPromise]);
   }
 
-  // برای حالت توسعه، کد را برمی‌گردانیم
   return { devCode: process.env.NODE_ENV === "development" ? code : undefined };
 }
 

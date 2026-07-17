@@ -1,7 +1,8 @@
 import type { Locale } from "./config";
 
 /**
- * فرهنگ واژگان دوزبانه. در فازهای بعد این محتوا از پنل ادمین قابل ویرایش می‌شود.
+ * فرهنگ واژگان فارسی (تک‌زبانه)
+ * سایت فقط به زبان فارسی ارائه می‌شود.
  */
 export const dictionaries = {
   fa: {
@@ -44,22 +45,40 @@ export const dictionaries = {
       subtitle: "زیرساختی که برای مقیاس صنعتی ساخته شده است",
       items: {
         variants: {
+          icon: "Layers",
           title: "سیستم تنوع پیشرفته",
           desc: "مدیریت واحد، قیمت، موجودی و مشخصات فنی برای هر تنوع محصول.",
         },
         ai: {
+          icon: "Cpu",
           title: "هوش مصنوعی یکپارچه",
           desc: "به‌روزرسانی قیمت از اکسل، خواندن PDF و مشاور تصویری هوشمند.",
         },
         b2b: {
+          icon: "Handshake",
           title: "پرتال پیمانکاران",
           desc: "استعلام قیمت، قیمت‌گذاری اختصاصی و پیگیری بصری سفارش‌ها.",
         },
         secure: {
+          icon: "ShieldCheck",
           title: "امنیت در بالاترین سطح",
           desc: "معماری آماده تولید، رمزنگاری و کنترل دسترسی دقیق.",
         },
       },
+    },
+    trust: {
+      icon1: "BadgeCheck",
+      title1: "اصالت کالا تضمینی",
+      desc1: "تأمین مستقیم از نمایندگی‌های رسمی",
+      icon2: "Truck",
+      title2: "ارسال سراسری",
+      desc2: "تحویل سریع به تمام نقاط ایران",
+      icon3: "Headset",
+      title3: "مشاوره تخصصی",
+      desc3: "پشتیبانی مهندسان مجرب تأسیسات",
+      icon4: "ShieldCheck",
+      title4: "پرداخت امن",
+      desc4: "درگاه‌های معتبر و نماد اعتماد",
     },
     footer: {
       rights: "تمامی حقوق محفوظ است.",
@@ -74,78 +93,6 @@ export const dictionaries = {
       soon: "به‌زودی",
       language: "زبان",
       theme: "پوسته",
-    },
-  },
-  en: {
-    brand: {
-      name: "Dornika Sahel",
-      tagline: "Specialized hub for industrial equipment",
-    },
-    nav: {
-      home: "Home",
-      shop: "Shop",
-      categories: "Categories",
-      finder: "Product Finder",
-      quote: "Request Quote",
-      contractors: "Contractors",
-      blog: "Blog",
-      about: "About Us",
-      contact: "Contact",
-      admin: "Admin Login",
-
-      cart: "Cart",
-      wishlist: "Wishlist",
-      search: "Search products…",
-    },
-    hero: {
-      badge: "Next-gen luxury industrial platform",
-      title: "Industrial equipment, world-class",
-      subtitle:
-        "Dornika Sahel redefines how you buy industrial and HVAC equipment — smart selection, unmatched variety, and AI-driven guidance.",
-      ctaPrimary: "Enter the shop",
-      ctaSecondary: "Product finder",
-    },
-    stats: {
-      products: "Active SKUs",
-      brands: "Trusted brands",
-      contractors: "Partner contractors",
-      support: "Expert support",
-    },
-    features: {
-      title: "Why Dornika Sahel?",
-      subtitle: "Infrastructure built for industrial scale",
-      items: {
-        variants: {
-          title: "Advanced variants",
-          desc: "Manage unit, price, stock and specs for every product variant.",
-        },
-        ai: {
-          title: "Integrated AI",
-          desc: "Excel price sync, PDF ingestion and a smart visual advisor.",
-        },
-        b2b: {
-          title: "Contractor portal",
-          desc: "Quotes, custom pricing and visual order tracking.",
-        },
-        secure: {
-          title: "Top-tier security",
-          desc: "Production-ready architecture, encryption and strict access control.",
-        },
-      },
-    },
-    footer: {
-      rights: "All rights reserved.",
-      explore: "Explore",
-      support: "Support",
-      legal: "Legal",
-      social: "Follow us",
-      enamad: "Trust Certificate",
-      enamadNote: "Officially certified",
-    },
-    common: {
-      soon: "Soon",
-      language: "Language",
-      theme: "Theme",
     },
   },
 } as const;

@@ -111,6 +111,14 @@
 
 :root {
   color-scheme: light;
+  --app-bg: #f7f2ea;
+  --app-surface: #fffdf9;
+  --app-surface-strong: #f3ecdf;
+  --app-surface-elevated: #ffffff;
+  --app-text: #08192b;
+  --app-text-muted: #5b6470;
+  --app-border: rgba(8, 25, 43, 0.12);
+  --app-shadow: 0 24px 64px -32px rgba(8, 25, 43, 0.22);
 }
 
 * {
@@ -123,16 +131,41 @@ html {
 
 body {
   font-family: var(--font-sans);
-  background-color: var(--color-pearl-100);
-  color: var(--color-navy-900);
+  background-color: var(--app-bg);
+  color: var(--app-text);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   overflow-x: hidden;
+  transition: background-color 240ms ease, color 240ms ease;
 }
 
 /* اعداد فارسی برای متن‌های عددی مهم */
 .nums-fa {
   font-feature-settings: "ss01";
+}
+
+/* جلوگیری از اسکرول افقی کل صفحه */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* جلوگیری از درگ شدن تصاویر */
+img {
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+}
+
+/* جلوگیری از جابجایی کارت‌ها هنگام hover در موبایل */
+@media (hover: none) and (pointer: coarse) {
+  .group:hover img {
+    transform: none !important;
+  }
+  [class*="hover:scale-"]:hover {
+    transform: none !important;
+  }
 }
 
 /* اسکرول‌بار سفارشی لوکس */
@@ -150,6 +183,19 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-petrol-600);
+}
+
+/* اسکرول‌بار مخفی (برای کاروسل‌ها) */
+/* اسکرول‌بار مخفی (برای کاروسل‌های افقی) */
+.scrollbar-hide,
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 /* انتخاب متن */
@@ -215,13 +261,13 @@ body {
 .card {
   background: linear-gradient(
     150deg,
-    color-mix(in oklab, #ffffff 82%, transparent),
-    color-mix(in oklab, var(--color-pearl-100) 70%, transparent)
+    color-mix(in oklab, #ffffff 96%, transparent),
+    color-mix(in oklab, var(--color-pearl-100) 90%, transparent)
   );
-  backdrop-filter: blur(18px) saturate(130%);
-  -webkit-backdrop-filter: blur(18px) saturate(130%);
-  border: 1px solid color-mix(in oklab, var(--color-navy-900) 9%, transparent);
-  box-shadow: 0 24px 60px -38px rgba(8, 25, 43, 0.4);
+  backdrop-filter: blur(6px) saturate(110%);
+  -webkit-backdrop-filter: blur(6px) saturate(110%);
+  border: 1px solid color-mix(in oklab, var(--color-navy-900) 14%, transparent);
+  box-shadow: 0 24px 60px -38px rgba(8, 25, 43, 0.45);
 }
 
 /* شبکه نقطه‌ای تیره برای پس‌زمینه روشن */
@@ -275,6 +321,26 @@ body {
 /* ==========================================================================
    Sidebar Scrollbar (ادمین پنل)
    ========================================================================== */
+/* اسکرولبار نازک برای بخش‌های عمومی */
+.thin-scroll::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.thin-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.thin-scroll::-webkit-scrollbar-thumb {
+  background: linear-gradient(var(--color-petrol-500), var(--color-navy-600));
+  border-radius: 999px;
+}
+.thin-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--color-petrol-600);
+}
+.thin-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-petrol-400) transparent;
+}
+
 .sidebar-scroll::-webkit-scrollbar {
   width: 5px;
 }
@@ -329,3 +395,305 @@ body:has([data-admin]) footer {
 body:has([data-admin]) {
   --footer-height: 0px !important;
 }
+
+/* ==========================================================================
+   Scroll Dots Navigation — ناوبری نقطه‌ای (شیشه‌ای و جمع‌شونده)
+   ========================================================================== */
+.scroll-dots-nav {
+  position: fixed;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 40;
+  transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  animation: fadeInLeft 0.6s ease-out;
+}
+
+@keyframes fadeInLeft {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
+}
+
+/* حالت جمع‌شده — وقتی اسکرول انجام نمی‌شود به کنار صفحه می‌چسبد */
+.scroll-dots-nav--collapsed {
+  left: -8px;
+  opacity: 0.65;
+}
+
+.scroll-dots-nav--collapsed:hover {
+  opacity: 1;
+}
+
+/* حالت باز — وقتی اسکرول انجام می‌شود یا هاور می‌شود */
+.scroll-dots-nav--expanded {
+  left: 20px;
+  opacity: 1;
+}
+
+.scroll-dots-track {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 8px;
+  background: linear-gradient(
+    160deg,
+    color-mix(in oklab, var(--color-pearl-100) 40%, transparent),
+    color-mix(in oklab, #ffffff 30%, transparent)
+  );
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid color-mix(in oklab, var(--color-pearl-100) 20%, transparent);
+  border-radius: 999px;
+  box-shadow: 
+    0 8px 32px -12px rgba(8, 25, 43, 0.2),
+    0 2px 8px -2px rgba(8, 25, 43, 0.08),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.4);
+  transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* حالت جمع‌شده — ترک شیشه‌ای نازک‌تر */
+.scroll-dots-nav--collapsed .scroll-dots-track {
+  padding: 8px 6px;
+  gap: 10px;
+  background: linear-gradient(
+    160deg,
+    color-mix(in oklab, var(--color-pearl-100) 25%, transparent),
+    color-mix(in oklab, #ffffff 18%, transparent)
+  );
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  border: 1px solid color-mix(in oklab, var(--color-pearl-100) 14%, transparent);
+  box-shadow: 
+    0 4px 20px -8px rgba(8, 25, 43, 0.15),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.3);
+}
+
+.scroll-dot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.scroll-dot:hover {
+  background: color-mix(in oklab, var(--color-petrol-500) 8%, transparent);
+}
+
+.scroll-dot--active {
+  background: color-mix(in oklab, var(--color-petrol-500) 14%, transparent);
+}
+
+.scroll-dot__core {
+  position: relative;
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--color-navy-900) 35%, transparent);
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  z-index: 2;
+}
+
+.scroll-dot:hover .scroll-dot__core {
+  background: color-mix(in oklab, var(--color-petrol-600) 50%, transparent);
+  transform: scale(1.2);
+}
+
+.scroll-dot--active .scroll-dot__core {
+  background: var(--color-petrol-600);
+  width: 10px;
+  height: 10px;
+  box-shadow: 0 0 12px 2px rgba(25, 99, 116, 0.5);
+}
+
+.scroll-dot__pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  z-index: 1;
+}
+
+.scroll-dot--active .scroll-dot__pulse {
+  border-color: color-mix(in oklab, var(--color-petrol-500) 45%, transparent);
+  animation: dotPulse 2.2s ease-out infinite;
+}
+
+@keyframes dotPulse {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.8;
+  }
+  70% {
+    transform: scale(1.45);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.45);
+    opacity: 0;
+  }
+}
+
+.scroll-dot__label {
+  position: absolute;
+  left: calc(100% + 16px);
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-navy-900);
+  background: linear-gradient(
+    150deg,
+    color-mix(in oklab, #ffffff 92%, transparent),
+    color-mix(in oklab, var(--color-pearl-100) 85%, transparent)
+  );
+  padding: 5px 14px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--color-navy-900) 8%, transparent);
+  box-shadow: 0 4px 16px -6px rgba(8, 25, 43, 0.2);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s ease;
+}
+
+.scroll-dot:hover .scroll-dot__label,
+.scroll-dot--active .scroll-dot__label {
+  opacity: 1;
+}
+
+/* مخفی کردن لیبل در موبایل */
+@media (max-width: 768px) {
+  .scroll-dots-nav--expanded {
+    left: 10px;
+  }
+  .scroll-dots-nav--collapsed {
+    left: -6px;
+    opacity: 0.6;
+  }
+  .scroll-dots-track {
+    gap: 12px;
+    padding: 10px 8px;
+  }
+  .scroll-dot {
+    width: 36px;
+    height: 36px;
+  }
+  .scroll-dot__core {
+    width: 8px;
+    height: 8px;
+  }
+  .scroll-dot--active .scroll-dot__core {
+    width: 10px;
+    height: 10px;
+  }
+  .scroll-dot__label {
+    display: none;
+  }
+}
+
+/* ==========================================================================
+   Enamad Badge — نماد اعتماد الکترونیکی
+   ========================================================================== */
+.enamad-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.enamad-badge a {
+  display: block;
+  line-height: 0;
+}
+
+.enamad-badge img {
+  display: block;
+  height: auto;
+  max-height: 96px;
+  max-width: 140px;
+  width: auto;
+  margin: 0 auto;
+}
+
+@media (max-width: 640px) {
+  .enamad-badge img {
+    max-height: 72px;
+    max-width: 110px;
+  }
+}
+
+/* ==========================================================================
+   Featured Products Box — محصولات ویژه
+   ========================================================================== */
+
+/* انیمیشن پالس برای ستاره */
+.pulse-star {
+  animation: pulseStar 2s ease-in-out infinite;
+}
+
+@keyframes pulseStar {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(35, 125, 144, 0.35);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 0 20px 5px rgba(35, 125, 144, 0.2);
+  }
+}
+
+/* باکس اصلی با انیمیشن حاشیه درخشان */
+.featured-box {
+  position: relative;
+  animation: featuredBoxGlow 3s ease-in-out infinite;
+}
+
+@keyframes featuredBoxGlow {
+  0%, 100% {
+    box-shadow: 0 0 30px -15px rgba(35, 125, 144, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 50px -10px rgba(35, 125, 144, 0.35);
+  }
+}
+
+/* ==========================================================================
+   Landing Slider Effects — انیمیشن‌های اسلایدر لاکچری
+   ========================================================================== */
+
+/* حاشیه درخشان شناور */
+@keyframes shimmer {
+  0%, 100% { transform: translateX(-100%); }
+  50% { transform: translateX(100%); }
+  0%, 100% { opacity: 0; }
+  20%, 80% { opacity: 1; }
+}
+
+/* چرخش گرادیانت مخروطی */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* پالس گلو دور دکمه CTA */
+@keyframes pulseGlow {
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50% { transform: scale(1.15); opacity: 1; }
+}
+
+

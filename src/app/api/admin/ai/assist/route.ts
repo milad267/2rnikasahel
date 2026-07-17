@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { getAiConfig } from "@/lib/ai";
+import { requireAdmin } from "@/lib/admin-security";
+import { enforceRateLimit } from "@/lib/request-security";
+import { trackedChatCompletion } from "@/lib/ai-usage";
+import { hasModuleAccess } from "@/lib/admin-permissions-server";
+import { safeErrorResponse } from "@/lib/safe-error";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +32,14 @@ const PROMPTS: Record<Action, string> = {
 };
 
 export async function POST(req: NextRequest) {
+  const auth = await requireAdmin();
+  if (auth.response) return auth.response;
+  if (!await hasModuleAccess(auth.user!.id, auth.user!.role, "ai")) {
+    return NextResponse.json({ ok: false, error: "شما به ابزارهای هوش مصنوعی دسترسی ندارید." }, { status: 403 });
+  }
+  const limited = enforceRateLimit(req, `admin-ai-assist:${auth.user!.id}`, 30, 60_000);
+  if (limited) return limited;
+
   try {
     const { action, productName, text, instruction } = (await req.json()) as {
       action: Action;
@@ -50,21 +63,22 @@ export async function POST(req: NextRequest) {
     const client = new OpenAI({ apiKey: config.apiKey, baseURL: config.baseUrl || undefined });
 
     const context = [
-      productName ? `نام محصول: ${productName}` : "",
+      productName ? `نام محصول: ${String(productName).slice(0, 300)}` : "",
       text ? `متن:\n${stripHtml(text).slice(0, 4000)}` : "",
-      instruction ? `دستور کاربر: ${instruction}` : "",
+      instruction ? `دستور کاربر: ${String(instruction).slice(0, 1000)}` : "",
     ]
       .filter(Boolean)
       .join("\n\n");
 
-    const completion = await client.chat.completions.create({
-      model: config.model || "gpt-4o-mini",
+    const model = config.model || "gpt-4o-mini";
+    const completion: any = await trackedChatCompletion(client, {
+      model,
       temperature: 0.7,
       messages: [
         { role: "system", content: "تو یک نویسنده و ویراستار حرفه‌ای محتوای فروشگاهی فارسی هستی." },
         { role: "user", content: `${PROMPTS[action]}\n\n${context}` },
       ],
-    });
+    }, { agent: action === "seo" || action === "tags" ? "seo" : "content", task: `assist:${action}`, provider: config.provider, model, userId: auth.user!.id, isAdmin: true });
 
     const raw = completion.choices[0]?.message?.content?.trim() || "";
 
@@ -76,7 +90,7 @@ export async function POST(req: NextRequest) {
       } catch {
         tags = raw
           .split(/[,،\n]/)
-          .map((t) => t.replace(/["\[\]]/g, "").trim())
+          .map((t: string) => t.replace(/["\[\]]/g, "").trim())
           .filter(Boolean);
       }
       return NextResponse.json({ ok: true, tags: tags.slice(0, 12) });
@@ -84,6 +98,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, result: raw });
   } catch (error) {
-    return NextResponse.json({ ok: false, error: (error as Error).message }, { status: 500 });
+    return safeErrorResponse(error, "ai-assist");
   }
 }

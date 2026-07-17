@@ -3,6 +3,20 @@ import { Pool } from "pg";
 import crypto from "node:crypto";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const adminEmail = process.env.ADMIN_EMAIL?.trim();
+const adminPhone = process.env.ADMIN_PHONE?.trim();
+const adminPassword = process.env.ADMIN_PASSWORD || "";
+
+if (!adminEmail || !/^09\d{9}$/.test(adminPhone || "") || adminPassword.length < 12) {
+  throw new Error("ADMIN_EMAIL, ADMIN_PHONE and ADMIN_PASSWORD (minimum 12 characters) are required for seeding.");
+}
+
+function securePasswordHash(password) {
+  const iterations = 210_000;
+  const salt = crypto.randomBytes(16).toString("hex");
+  const hash = crypto.pbkdf2Sync(password, salt, iterations, 64, "sha512").toString("hex");
+  return `v2:${iterations}:${salt}:${hash}`;
+}
 
 // ────────────────────────────────────────────────────────────────
 // داده‌های نمونه برای فاز ۰ + فاز ۱
@@ -105,23 +119,21 @@ async function main() {
     }
 
     // ── ادمین تستی ──
-    const adminHash = crypto.createHash("sha256").update("admin1234").digest("hex");
+    const adminHash = crypto.createHash("sha256").update(adminPassword).digest("hex");
     await client.query(
       `INSERT INTO admin_users (name, email, password_hash, role)
        VALUES ($1,$2,$3,$4)
        ON CONFLICT (email) DO NOTHING`,
-      ["مدیر تستی", "admin@dornika.local", adminHash, "superadmin"],
+      ["مدیر اصلی", adminEmail, adminHash, "superadmin"],
     );
 
     // ── ادمین رو به جدول users هم اضافه می‌کنیم (برای لاگین با ایمیل و رمز) ──
-    const adminSalt = crypto.randomBytes(16).toString("hex");
-    const adminPwdHash = crypto.pbkdf2Sync("admin1234", adminSalt, 10000, 64, "sha512").toString("hex");
-    const adminFullHash = `${adminSalt}:${adminPwdHash}`;
+    const adminFullHash = securePasswordHash(adminPassword);
     await client.query(
       `INSERT INTO users (name, email, phone, password_hash, role, company_name)
        VALUES ($1,$2,$3,$4,$5,$6)
        ON CONFLICT (phone) DO NOTHING`,
-      ["مدیر تستی (ادمین)", "admin@dornika.local", "09999999999", adminFullHash, "superadmin", "درنیکا ساحل"],
+      ["مدیر اصلی", adminEmail, adminPhone, adminFullHash, "superadmin", "درنیکا ساحل"],
     );
 
     // ── واحدهای اندازه‌گیری (۱۹ واحد) ──
@@ -289,8 +301,8 @@ async function main() {
       }
 
       // ── کاربران نمونه فاز ۳ ──
-      const userHash = crypto.pbkdf2Sync("123456", "seed_salt_123456789012345678901234", 10000, 64, "sha512").toString("hex");
-      const fullHash = `seed_salt_123456789012345678901234:${userHash}`;
+      const demoPassword = process.env.DEMO_USER_PASSWORD || crypto.randomBytes(24).toString("base64url");
+      const fullHash = securePasswordHash(demoPassword);
       const userRes = await client.query(
         `INSERT INTO users (phone, name, password_hash, role, company_name)
          VALUES ($1,$2,$3,$4,$5)

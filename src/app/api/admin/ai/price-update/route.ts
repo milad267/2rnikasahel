@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/admin-security";
 import * as XLSX from "xlsx";
 import { db } from "@/db";
 import { aiPriceUpdateJobs, productVariants } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { hasModuleAccess } from "@/lib/admin-permissions-server";
+import { safeErrorResponse } from "@/lib/safe-error";
 
 export const dynamic = "force-dynamic";
 
@@ -31,10 +34,19 @@ function parsePrice(value: unknown): number | null {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = await requireAdmin(); if (auth.response) return auth.response;
+  const [canUpdatePrices, canManageProducts] = await Promise.all([
+    hasModuleAccess(auth.user!.id, auth.user!.role, "ai-price"),
+    hasModuleAccess(auth.user!.id, auth.user!.role, "products"),
+  ]);
+  if (!canUpdatePrices || !canManageProducts) {
+    return NextResponse.json({ ok: false, error: "برای به‌روزرسانی قیمت، دسترسی قیمت‌گذاری و محصولات لازم است." }, { status: 403 });
+  }
   try {
     const form = await req.formData();
     const file = form.get("file") as File | null;
     const dryRun = String(form.get("dryRun") ?? "true") !== "false";
+    const percentageOffset = parseFloat(String(form.get("percentageOffset") ?? "0"));
 
     if (!file) {
       return NextResponse.json({ ok: false, error: "فایل اکسل انتخاب نشده است." }, { status: 400 });
@@ -70,12 +82,17 @@ export async function POST(req: NextRequest) {
       const priceEntry = entries.find(([k]) => normalizeHeader(k) === "PRICE" || normalizeHeader(k) === "قیمت" || normalizeHeader(k) === "PRICE_RIAL");
 
       const code = String(codeEntry?.[1] ?? "").trim();
-      const price = parsePrice(priceEntry?.[1]);
+      let price = parsePrice(priceEntry?.[1]);
 
       if (!code || price === null) {
         errorRows++;
         report.push({ row: i + 2, code, price, status: "invalid", error: "CODE یا PRICE نامعتبر است." });
         continue;
+      }
+
+      // اعمال درصد افزایش/کاهش
+      if (percentageOffset !== 0) {
+        price = Math.round(price * (1 + percentageOffset / 100));
       }
 
       const [variant] = await db
@@ -109,7 +126,7 @@ export async function POST(req: NextRequest) {
         matchedRows,
         updatedRows,
         errorRows,
-        report: { rows: report },
+        report: { rows: report, percentageOffset },
       })
       .returning();
 
@@ -121,9 +138,10 @@ export async function POST(req: NextRequest) {
       matchedRows,
       updatedRows,
       errorRows,
+      percentageOffset,
       report,
     });
   } catch (error) {
-    return NextResponse.json({ ok: false, error: (error as Error).message }, { status: 500 });
+    return safeErrorResponse(error, "price-update");
   }
 }

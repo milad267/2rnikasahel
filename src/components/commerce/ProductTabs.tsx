@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Info, ClipboardList, Store, ShieldCheck } from "lucide-react";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 type Props = {
   description: string | null;
@@ -51,7 +52,7 @@ export function ProductTabs({ description, specSheet, brandName, categoryTitle }
         {activeTab === "description" && (
           <div className="prose prose-sm max-w-none text-sm leading-7 text-charcoal-700">
             {description ? (
-              <div dangerouslySetInnerHTML={{ __html: description }} />
+              <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(description || "") }} />
             ) : (
               <p className="text-charcoal-400">هنوز توضیحی برای این محصول ثبت نشده است.</p>
             )}
@@ -75,15 +76,6 @@ export function ProductTabs({ description, specSheet, brandName, categoryTitle }
 
         {activeTab === "brand" && (
           <div className="space-y-4 text-sm">
-            {categoryTitle && (
-              <div className="flex items-center gap-3 rounded-xl bg-navy-900/[0.03] px-4 py-3">
-                <Store className="size-5 text-petrol-600" strokeWidth={1.6} />
-                <div>
-                  <p className="text-xs text-charcoal-500">دسته‌بندی</p>
-                  <p className="font-semibold text-navy-900">{categoryTitle}</p>
-                </div>
-              </div>
-            )}
             {brandName ? (
               <div className="flex items-center gap-3 rounded-xl bg-navy-900/[0.03] px-4 py-3">
                 <ShieldCheck className="size-5 text-petrol-600" strokeWidth={1.6} />

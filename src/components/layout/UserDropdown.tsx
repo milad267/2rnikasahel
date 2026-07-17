@@ -64,19 +64,19 @@ export function UserDropdown({ user }: UserDropdownProps) {
 
           <div className="mt-1 space-y-0.5">
             <DropItem
-              href="/profile#profile"
+              href="/profile"
               icon={User}
               label="پروفایل کاربری"
               onClick={() => setOpen(false)}
             />
             <DropItem
-              href="/profile#orders"
+              href="/orders"
               icon={Package}
               label="سفارشات من"
               onClick={() => setOpen(false)}
             />
             <DropItem
-              href="/profile#settings"
+              href="/profile"
               icon={Settings}
               label="تنظیمات حساب"
               onClick={() => setOpen(false)}

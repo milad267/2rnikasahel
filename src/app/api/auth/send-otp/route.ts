@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendOtp, RateLimitError } from "@/lib/otp";
+import { enforceRateLimit } from "@/lib/request-security";
 
 export async function POST(req: NextRequest) {
+  const limited = enforceRateLimit(req, "otp-send", 5, 5 * 60 * 1000);
+  if (limited) return limited;
   try {
     const body = await req.json().catch(() => null);
     const target = String(body?.target || "").trim();

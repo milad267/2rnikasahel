@@ -7,12 +7,15 @@ export function cn(...inputs: ClassValue[]) {
 
 /**
  * قالب‌بندی مبلغ به ریال با جداکننده هزارگان و ارقام فارسی.
+ * @param currencySymbol - واحد پول (پیش‌فرض "ریال")
  */
-export function formatRial(value: number | string, opts?: { withUnit?: boolean }) {
+export function formatRial(value: number | string, opts?: { withUnit?: boolean; currencySymbol?: string }) {
   const num = typeof value === "string" ? Number(value) : value;
   if (Number.isNaN(num)) return "—";
   const formatted = new Intl.NumberFormat("fa-IR").format(Math.round(num));
-  return opts?.withUnit === false ? formatted : `${formatted} ریال`;
+  if (opts?.withUnit === false) return formatted;
+  const unit = opts?.currencySymbol || "ریال";
+  return `${formatted} ${unit}`;
 }
 
 /** تبدیل ارقام لاتین به فارسی */

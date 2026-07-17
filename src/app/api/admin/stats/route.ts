@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/admin-security";
 import { db } from "@/db";
 import { products, productVariants, orders, orderItems, users, categories } from "@/db/schema";
 import { eq, sql, and, gte, desc } from "drizzle-orm";
+import { safeErrorResponse } from "@/lib/safe-error";
 
 export async function GET(req: NextRequest) {
+  const auth = await requireAdmin(); if (auth.response) return auth.response;
   try {
     const type = req.nextUrl.searchParams.get("type") || "overview";
     const days = Number(req.nextUrl.searchParams.get("days")) || 7;
@@ -146,6 +149,6 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ ok: true, data });
   } catch (error) {
-    return NextResponse.json({ ok: false, error: (error as Error).message }, { status: 500 });
+    return safeErrorResponse(error, "admin-stats");
   }
 }

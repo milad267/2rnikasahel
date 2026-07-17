@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE, createSessionToken, toggleWishlist, getWishlistPageData } from "@/lib/commerce";
+import { safeErrorResponse } from "@/lib/safe-error";
 
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
@@ -41,6 +42,6 @@ export async function POST(req: NextRequest) {
     res.cookies.set(SESSION_COOKIE, sessionToken, { path: "/", maxAge: COOKIE_MAX_AGE });
     return res;
   } catch (error) {
-    return NextResponse.json({ ok: false, error: (error as Error).message }, { status: 400 });
+    return safeErrorResponse(error, "wishlist-toggle");
   }
 }

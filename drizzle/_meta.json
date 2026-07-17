@@ -1,0 +1,13 @@
+{
+  "version": "6",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1721049600000,
+      "tag": "0000_add_assistant_sessions",
+      "breakpoints": true
+    }
+  ]
+}
