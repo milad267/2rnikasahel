@@ -12,6 +12,25 @@ function fileSize(size: number) {
   return size >= 1024 * 1024 ? `${(size / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(size / 1024))} KB`;
 }
 
+/** تولید UUID v4 بدون نیاز به secure context (کار روی HTTP معمولی) */
+function generateUUID(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  // Fallback با crypto.getRandomValues که در همه contextها کار می‌کنه
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  bytes[6] = (bytes[6] & 0x0f) | 0x40; // version 4
+  bytes[8] = (bytes[8] & 0x3f) | 0x80; // variant 10
+  let uuid = "";
+  for (let i = 0; i < 16; i++) {
+    const hex = bytes[i].toString(16).padStart(2, "0");
+    uuid += hex;
+    if (i === 3 || i === 5 || i === 7 || i === 9) uuid += "-";
+  }
+  return uuid;
+}
+
 export function UserAssistant() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
@@ -26,7 +45,7 @@ export function UserAssistant() {
   const sessionId = useRef("");
 
   useEffect(() => {
-    sessionId.current = crypto.randomUUID();
+    sessionId.current = generateUUID();
   }, []);
 
   useEffect(() => {
@@ -45,7 +64,7 @@ export function UserAssistant() {
     setLoading(true);
     try {
       const res = await fetch("/api/assistant", {
-        method: "POST", headers: { "Content-Type": "application/json", "X-Session-Id": sessionId.current || crypto.randomUUID() },
+        method: "POST", headers: { "Content-Type": "application/json", "X-Session-Id": sessionId.current || generateUUID() },
         body: JSON.stringify({
           message: visibleMessage,
           history: messages.slice(-6).map(m => ({ role: m.role, content: m.content })),
