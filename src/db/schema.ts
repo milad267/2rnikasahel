@@ -129,7 +129,7 @@ export const products = pgTable(
     }),
     slug: varchar("slug", { length: 200 }).notNull(),
     title: varchar("title", { length: 300 }).notNull(),
-    subtitle: varchar("subtitle", { length: 300 }),
+    subtitle: text("subtitle"),
     description: text("description"),
     images: jsonb("images").$type<string[]>().notNull().default([]),
     coverImage: varchar("cover_image", { length: 500 }),
