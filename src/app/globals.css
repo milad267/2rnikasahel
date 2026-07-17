@@ -581,27 +581,28 @@ body:has([data-admin]) {
 /* مخفی کردن لیبل در موبایل */
 @media (max-width: 768px) {
   .scroll-dots-nav--expanded {
-    left: 10px;
+    left: 6px;
   }
   .scroll-dots-nav--collapsed {
-    left: -6px;
-    opacity: 0.6;
+    left: -10px;
+    opacity: 0.5;
   }
   .scroll-dots-track {
-    gap: 12px;
-    padding: 10px 8px;
+    gap: 6px;
+    padding: 8px 5px;
   }
   .scroll-dot {
-    width: 36px;
-    height: 36px;
+    width: 28px;
+    height: 28px;
   }
   .scroll-dot__core {
-    width: 8px;
-    height: 8px;
+    width: 5px;
+    height: 5px;
   }
   .scroll-dot--active .scroll-dot__core {
-    width: 10px;
-    height: 10px;
+    width: 7px;
+    height: 7px;
+    box-shadow: 0 0 8px 1px rgba(25, 99, 116, 0.4);
   }
   .scroll-dot__label {
     display: none;

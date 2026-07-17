@@ -112,8 +112,8 @@ export function UserAssistant() {
   return (
     <>
       <button type="button" onClick={() => setOpen(!open)} aria-label={open ? "بستن دستیار فروشگاه" : "باز کردن دستیار فروشگاه"}
-        className="fixed bottom-20 left-6 z-50 flex size-12 items-center justify-center rounded-full bg-gradient-to-br from-petrol-600 to-petrol-500 text-white shadow-xl transition-all hover:scale-105 hover:shadow-petrol-600/30">
-        <Sparkles className="size-5" strokeWidth={1.6} />
+        className="fixed bottom-24 left-3 z-50 flex size-10 items-center justify-center rounded-full bg-gradient-to-br from-petrol-600 to-petrol-500 text-white shadow-xl transition-all hover:scale-105 hover:shadow-petrol-600/30 sm:bottom-20 sm:left-6 sm:size-12">
+        <Sparkles className="size-4 sm:size-5" strokeWidth={1.6} />
       </button>
 
       <AnimatePresence>
@@ -124,25 +124,25 @@ export function UserAssistant() {
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
             onWheel={(event) => event.stopPropagation()}
-            className="fixed bottom-36 left-4 z-[60] flex h-[min(460px,calc(100dvh-10rem))] w-[calc(100vw-2rem)] max-w-[340px] flex-col overscroll-contain rounded-2xl border border-slate-200 bg-white shadow-2xl sm:left-6"
+            className="fixed bottom-32 left-2 z-[60] flex h-[min(380px,calc(100dvh-12rem))] w-[calc(100vw-1rem)] max-w-[320px] flex-col overscroll-contain rounded-2xl border border-slate-200 bg-white shadow-2xl sm:bottom-36 sm:left-4 sm:w-[calc(100vw-2rem)] sm:max-w-[340px] sm:h-[min(460px,calc(100dvh-10rem))]"
           >
-          <div className="flex-shrink-0 rounded-t-2xl bg-gradient-to-r from-petrol-600 to-petrol-500 px-4 py-3 text-white">
+          <div className="flex-shrink-0 rounded-t-2xl bg-gradient-to-r from-petrol-600 to-petrol-500 px-3 py-2.5 text-white sm:px-4 sm:py-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <Sparkles className="size-4" strokeWidth={1.5} />
+              <div className="flex items-center gap-2 sm:gap-2.5">
+                <Sparkles className="size-3.5 sm:size-4" strokeWidth={1.5} />
                 <div>
-                  <h3 className="text-sm font-bold">دستیار فروشگاه</h3>
-                  <p className="text-[10px] text-white/70">پرسش‌های شما را پاسخ می‌دهد</p>
+                  <h3 className="text-xs font-bold sm:text-sm">دستیار فروشگاه</h3>
+                  <p className="text-[9px] text-white/70 sm:text-[10px]">پرسش‌های شما را پاسخ می‌دهد</p>
                 </div>
               </div>
-              <button type="button" aria-label="بستن دستیار" onClick={() => setOpen(false)} className="flex size-7 items-center justify-center rounded-full bg-white/15"><X className="size-4" /></button>
+              <button type="button" aria-label="بستن دستیار" onClick={() => setOpen(false)} className="flex size-6 items-center justify-center rounded-full bg-white/15 sm:size-7"><X className="size-3.5 sm:size-4" /></button>
             </div>
           </div>
 
-          <div className="flex-1 overscroll-contain overflow-y-auto p-3 space-y-3">
+          <div className="flex-1 overscroll-contain overflow-y-auto p-2.5 space-y-2.5 sm:p-3 sm:space-y-3">
             {messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[90%] rounded-2xl px-3.5 py-2.5 text-xs leading-6 ${
+                <div className={`max-w-[92%] rounded-2xl px-3 py-2 text-xs leading-6 sm:max-w-[90%] sm:px-3.5 sm:py-2.5 ${
                   msg.role === "assistant" ? "bg-petrol-50 text-petrol-900" : "bg-slate-100 text-slate-800"
                 }`}>
                   {msg.attachments?.map(file => (
@@ -162,7 +162,7 @@ export function UserAssistant() {
             <div ref={messagesEnd} />
           </div>
 
-          <form onSubmit={handleSend} className="flex-shrink-0 border-t border-slate-100 p-3">
+          <form onSubmit={handleSend} className="flex-shrink-0 border-t border-slate-100 p-2.5 sm:p-3">
             {attachments.length > 0 && (
               <div className="mb-2 flex flex-wrap gap-1.5">
                 {attachments.map((file) => (
@@ -173,7 +173,7 @@ export function UserAssistant() {
                 ))}
               </div>
             )}
-            <div className="flex items-center gap-2 rounded-2xl bg-slate-50 px-3 py-2">
+            <div className="flex items-center gap-1.5 rounded-2xl bg-slate-50 px-2.5 py-1.5 sm:gap-2 sm:px-3 sm:py-2">
               <button type="button" aria-label="افزودن فایل" onClick={() => fileRef.current?.click()} disabled={uploading}
                 className="text-slate-400 hover:text-slate-600 disabled:opacity-40">
                 <Paperclip className="size-4" strokeWidth={1.5} />
@@ -182,8 +182,8 @@ export function UserAssistant() {
               <input type="text" value={input} onChange={e => setInput(e.target.value)} placeholder="سوال خود را بپرسید..."
                 className="flex-1 bg-transparent text-xs text-slate-800 outline-none placeholder:text-slate-400" />
               <button type="submit" aria-label="ارسال پیام" disabled={(!input.trim() && attachments.length === 0) || loading}
-                className="flex size-7 items-center justify-center rounded-full bg-petrol-600 text-white disabled:opacity-40">
-                <ChevronLeft className="size-4" strokeWidth={2} />
+                className="flex size-6 items-center justify-center rounded-full bg-petrol-600 text-white disabled:opacity-40 sm:size-7">
+                <ChevronLeft className="size-3.5 sm:size-4" strokeWidth={2} />
               </button>
             </div>
           </form>
