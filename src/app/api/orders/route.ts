@@ -120,11 +120,12 @@ export async function POST(req: NextRequest) {
       subtotal: String(subtotal),
       count,
     });
+    const useSecure = process.env.NODE_ENV === "production" && String(process.env.NEXT_PUBLIC_SITE_URL || "").startsWith("https://");
     res.cookies.set(SESSION_COOKIE, sessionToken, {
       path: "/",
       maxAge: COOKIE_MAX_AGE,
       sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      secure: useSecure,
     });
     return res;
   } catch (error) {

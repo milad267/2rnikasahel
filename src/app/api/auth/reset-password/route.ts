@@ -63,12 +63,13 @@ export async function POST(req: NextRequest) {
       ok: true,
       message: "رمز عبور با موفقیت تغییر کرد و وارد حساب شدید.",
     });
+    const useSecure = process.env.NODE_ENV === "production" && String(process.env.NEXT_PUBLIC_SITE_URL || "").startsWith("https://");
     res.cookies.set(USER_TOKEN_COOKIE, token, {
       path: "/",
       maxAge: 60 * 60 * 24 * 7,
       httpOnly: true,
       sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      secure: useSecure,
     });
     return res;
   } catch (error) {

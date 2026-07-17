@@ -44,12 +44,13 @@ export async function POST(req: NextRequest) {
 
     const token = createAuthToken(created.id, created.phone, created.role);
     const res = NextResponse.json({ ok: true, user: { id: created.id, name: created.name, phone: created.phone, role: created.role } });
+    const useSecure = process.env.NODE_ENV === "production" && String(process.env.NEXT_PUBLIC_SITE_URL || "").startsWith("https://");
     res.cookies.set(USER_TOKEN_COOKIE, token, {
       path: "/",
       maxAge: 60 * 60 * 24 * 7,
       httpOnly: true,
       sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      secure: useSecure,
     });
     return res;
   } catch (error) {

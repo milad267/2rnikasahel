@@ -71,12 +71,13 @@ export async function POST(req: NextRequest) {
 
     const token = createAuthToken(user.id, user.phone, user.role);
     const res = NextResponse.json({ ok: true, user: { id: user.id, name: user.name, phone: user.phone, email: user.email, role: user.role } });
+    const useSecure = process.env.NODE_ENV === "production" && String(process.env.NEXT_PUBLIC_SITE_URL || "").startsWith("https://");
     res.cookies.set(USER_TOKEN_COOKIE, token, {
       path: "/",
       maxAge: 60 * 60 * 24 * 7,
       httpOnly: true,
       sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      secure: useSecure,
     });
     // ادغام سبد خرید مهمان به حساب کاربری
     const sessionToken = req.cookies.get(SESSION_COOKIE)?.value;

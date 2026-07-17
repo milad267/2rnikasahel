@@ -96,12 +96,13 @@ export async function POST(req: NextRequest) {
         role: user.role,
       },
     });
+    const useSecure = process.env.NODE_ENV === "production" && String(process.env.NEXT_PUBLIC_SITE_URL || "").startsWith("https://");
     res.cookies.set(USER_TOKEN_COOKIE, token, {
       path: "/",
       maxAge: 60 * 60 * 24 * 7,
       httpOnly: true,
       sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      secure: useSecure,
     });
     // ادغام سبد خرید مهمان به حساب کاربری
     const sessionToken = req.cookies.get(SESSION_COOKIE)?.value;
