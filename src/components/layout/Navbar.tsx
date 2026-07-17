@@ -280,9 +280,9 @@ export function Navbar({
                   <button
                     type="button"
                     onClick={() => setPopup("auth")}
-                    className="flex items-center gap-1.5 rounded-full bg-pearl-50 px-3.5 py-1.5 text-xs font-semibold text-navy-900 transition-all hover:bg-pearl-100"
+                    className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-pearl-50 px-4 py-1.5 text-sm font-semibold text-navy-900 transition-all hover:bg-pearl-100"
                   >
-                    <User className="size-3.5 text-petrol-700" strokeWidth={1.8} />
+                    <User className="size-4 text-petrol-700" strokeWidth={1.8} />
                     ورود / ثبت‌نام
                   </button>
                 )}
