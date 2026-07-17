@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const productSchema = z.object({
-  title: z.string().min(3, "نام محصول حداقل ۳ کاراکتر باید باشد"),
+  title: z.string().min(3, "نام محصول حداقل ۳ کاراکتر باید باشد").max(300, "عنوان محصول حداکثر ۳۰۰ کاراکتر می‌تواند باشد"),
   slug: z.string().min(2, "Slug حداقل ۲ کاراکتر"),
   sku: z.string().optional(),
   brandId: z.number().optional(),

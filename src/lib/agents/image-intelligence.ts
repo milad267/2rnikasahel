@@ -864,7 +864,7 @@ export async function configureWatermarkLogo(logoPath: string): Promise<void> {
       updatedAt: new Date(),
     })
     .onConflictDoUpdate({
-      target: [siteSettings.key, siteSettings.group],
+      target: [siteSettings.key, siteSettings.locale],
       set: { value: logoPath, updatedAt: new Date() },
     });
 

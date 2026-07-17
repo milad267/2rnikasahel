@@ -83,10 +83,12 @@ export async function POST(req: NextRequest) {
     const { title, slug, price, stock, categoryId, brandId, isActive, isFeatured, sortOrder, sku, coverImage, images, attrs, variantsEnabled, variants, unitId, subUnit, hasDiscount, discountType, discountValue, discountPrice } = body;
     if (!title) return NextResponse.json({ ok: false, error: "نام محصول الزامی است" }, { status: 400 });
 
-    
+    // محدودیت طول عنوان (ایمن‌سازی در برابر خطای دیتابیس)
+    const safeTitle = String(title).trim().slice(0, 300);
+
     // همیشه همه فیلدها رو با مقادیر explicit بفرست
     const [created] = await db.insert(products).values({
-      title: title.trim(),
+      title: safeTitle,
       slug: (slug || title.replace(/\s+/g, "-").toLowerCase()).trim(),
       categoryId: (categoryId && Number(categoryId) > 0) ? Number(categoryId) : null,
       brandId: (brandId && Number(brandId) > 0) ? Number(brandId) : null,
@@ -147,7 +149,7 @@ export async function PUT(req: NextRequest) {
     if (!id) return NextResponse.json({ ok: false, error: "شناسه محصول الزامی است" }, { status: 400 });
 
     const updateData: Record<string, any> = {};
-    if (updates.title !== undefined) updateData.title = updates.title;
+    if (updates.title !== undefined) updateData.title = String(updates.title).trim().slice(0, 300);
     if (updates.slug !== undefined) updateData.slug = updates.slug;
     if (updates.isActive !== undefined) updateData.isActive = updates.isActive;
     if (updates.isFeatured !== undefined) updateData.isFeatured = updates.isFeatured;

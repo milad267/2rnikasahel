@@ -549,7 +549,7 @@ export default function ProductsPage() {
               {tab === "basic" && (
                 <div className="space-y-5">
                   <div className="grid gap-5 sm:grid-cols-2">
-                    <Field label="نام محصول" value={form.title} onChange={v => setForm(f => ({ ...f, title: v }))} required />
+                    <Field label="نام محصول" value={form.title} onChange={v => setForm(f => ({ ...f, title: v }))} required maxLength={300} />
                     <div>
                       <label className="mb-1.5 block text-xs font-semibold text-slate-700">کد محصول (SKU)</label>
                       <div className="flex gap-1.5">
@@ -1050,8 +1050,8 @@ function SubUnitSelect({ units, unitId, value, onChange }: { units: Unit[]; unit
   );
 }
 
-function Field({ label, value, onChange, required, subtitle, ltr }: { label: string; value: string; onChange: (v: string) => void; required?: boolean; subtitle?: string; ltr?: boolean }) {
-  return <div><label className="mb-1.5 block text-xs font-semibold text-slate-700">{label}{required && " *"}</label><input value={value} onChange={e => onChange(e.target.value)} dir={ltr ? "ltr" : undefined} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-xs outline-none focus:border-petrol-500" />{subtitle && <p className="mt-1 text-[10px] text-slate-400">{subtitle}</p>}</div>;
+function Field({ label, value, onChange, required, subtitle, ltr, maxLength }: { label: string; value: string; onChange: (v: string) => void; required?: boolean; subtitle?: string; ltr?: boolean; maxLength?: number }) {
+  return <div><label className="mb-1.5 block text-xs font-semibold text-slate-700">{label}{required && " *"}</label><input value={value} onChange={e => onChange(e.target.value)} dir={ltr ? "ltr" : undefined} maxLength={maxLength} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-xs outline-none focus:border-petrol-500" />{subtitle && <p className="mt-1 text-[10px] text-slate-400">{subtitle}</p>}</div>;
 }
 
 function renderCatOptions(cats: Category[], depth: number): React.ReactNode[] {

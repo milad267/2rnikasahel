@@ -144,7 +144,7 @@ async function storeLongTerm(
         updatedAt: now,
       })
       .onConflictDoUpdate({
-        target: [siteSettings.key, siteSettings.group],
+        target: [siteSettings.key, siteSettings.locale],
         set: { value: { memories: trimmed }, updatedAt: now },
       });
   } catch (error) {
